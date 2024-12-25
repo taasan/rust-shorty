@@ -1,0 +1,115 @@
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #252b34;
+    --color: white;
+    --link-color: #0b7cc5;
+
+    /* Header and footer */
+    --hf-background-color: #1e2429;
+    --hf-color: white;
+    --hf-link-color: #1991d8;
+
+    /* Quote */
+    --q-background-color: inherit;
+    --q-color: inherit;
+    --q-border-color: #78c0a8;
+  }
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --background-color: #e2e6ea;
+    --color: #333;
+    --link-color: #2d6a9f;
+
+    /* Header and footer */
+    --hf-background-color: #dadfe5;
+    --hf-color: #333;
+    --hf-link-color: #327ab7;
+
+    /* Quote */
+    --q-background-color: inherit;
+    --q-color: inherit;
+    --q-border-color: #78c0a8;
+  }
+}
+:root {
+  --svg-fill: var(--hf-color);
+}
+a {
+  color: var(--link-color);
+}
+body {
+  background-color: var(--background-color);
+  color: var(--color);
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  justify-items: center;
+}
+header, footer {
+  width: 100%;
+}
+main {
+  max-width: 100vw;
+}
+header {
+  background-color: var(--hf-background-color);
+  color: var(--hf-color);
+  padding: 1em;
+  text-align: center;
+}
+header a {
+  color: var(--hf-link-color);
+  text-decoration: none;
+}
+footer a {
+  color: var(--hf-link-color);
+  text-decoration: none;
+}
+main {
+  padding: 1em 0;
+}
+footer {
+  background-color: var(--hf-background-color);
+  color: var(--hf-color);
+  padding: 1em;
+  text-align: center;
+}
+pre {
+  border-radius: 1ex;
+  padding: 1em;
+  overflow: scroll;
+}
+.error {
+  background-color: salmon;
+}
+.qr {
+  margin-top: 3em;
+  max-width: fit-content;
+}
+.qr img {
+  width: 250px;
+  max-width: 100%;
+}
+blockquote {
+  white-space: pre;
+  overflow-x: auto;
+  width: 100%;
+  max-width: fit-content;
+  margin: 0;
+  font-family: Open Sans;
+  font-style: italic;
+  color: var(--q-color);
+  padding: 1.2em;
+  border-left: 8px solid var(--q-border-color);
+  line-height: 1.6;
+  background: var(--q-background-color);
+}
+section.http-error > h2 {
+  text-transform: uppercase;
+}
