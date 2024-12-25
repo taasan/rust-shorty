@@ -1,0 +1,44 @@
+[workspace]
+members = ["cgi", "shorty"]
+resolver = "2"
+
+[workspace.dependencies]
+url = { version = "2.5.4", default-features = false }
+http = { version = "1.2", default-features = false }
+headers = { version = "0.4", default-features = false }
+matchit = { version = "0.8.5", default-features = false }
+rusqlite = { version = "0.32.0", default-features = false, features = [
+  "bundled",
+  "url",
+] }
+askama = { version = "0.12.1", default-features = false }
+qrcode = { version = "0.14.1", default-features = false }
+base64 = { version = "0.22.1", default-features = true }
+serde = { version = "1.0", default-features = true }
+serde_plain = { version = "1.0.2", default-features = false }
+thiserror = "2"
+anyhow = "1.0"
+git-version = "0.3"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unknown_lints = "forbid"
+
+[workspace.lints.clippy]
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+std_instead_of_core = "deny"
+alloc_instead_of_core = "deny"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+missing_const_for_fn = "deny"
+option_if_let_else = "deny"
+use_self = "deny"
+redundant_clone = "deny"
+unwrap_used = "deny"
+disallowed-methods = "deny"
+
+[profile.release]
+strip = true
+lto = "thin"

@@ -1,0 +1,12 @@
+[package]
+name = "shorty"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rusqlite = { workspace = true }
+url = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,15 @@
+avoid-breaking-exported-api = false
+allow-unwrap-in-tests = true
+disallowed-methods = [
+    # Can use a string as the path of the disallowed method.
+    "std::env::var",
+    "std::env::var_os",
+    "std::env::vars",
+    "std::env::vars_os",
+    # Can also use an inline table with a `path` key.
+    { path = "std::time::Instant::now" },
+    # When using an inline table, can add a `reason` for why the method
+    # is disallowed.
+    { path = "std::vec::Vec::leak", reason = "no leaking memory" },
+]
+doc-valid-idents = ["SQLite", ".."]

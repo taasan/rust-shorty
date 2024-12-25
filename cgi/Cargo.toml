@@ -1,0 +1,23 @@
+[package]
+name = "cgi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shorty = { path = "../shorty" }
+http = { workspace = true, features = ["std"] }
+headers = { workspace = true }
+matchit = { workspace = true }
+askama = { workspace = true }
+qrcode = { workspace = true, features = ["svg"] }
+base64 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_plain = { workspace = true }
+anyhow = { workspace = true }
+git-version = { workspace = true }
+
+[dev-dependencies]
+html5ever = "0.29.0"
+
+[lints]
+workspace = true

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{%- block title %}Shorty{% endblock -%}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+:root {
+  color-scheme: light dark;
+}
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+  </style>
+</head>
+<body>
+  <!-- Version: {{ VERSION }} -->
+  <header>
+    <h1>Shorty</h1>
+  </header>
+  <main>
+    {%~ block content %}<blockquote>Don't panic!</blockquote>{% endblock %}
+  </main>
+  <footer>
+    <p>🄯 2024 Trond Aasan</p>
+  </footer>
+</body>
+</html>
