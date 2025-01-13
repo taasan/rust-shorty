@@ -79,8 +79,8 @@ mod test {
     #[test]
     fn test_short_url_template_valid_html() {
         let template = ShortUrlTemplate {
-            page_url: http::Uri::from_static("https://example.com"),
-            short_url: ShortUrl::try_from(("abc", "https://example.com")).unwrap(),
+            page_url: http::Uri::from_static("https://example.com/#ch-1"),
+            short_url: ShortUrl::try_from(("abc", "https://example.com/#ch-1")).unwrap(),
         };
         let output = template.render().unwrap();
         let errors = html::validate(&output);
