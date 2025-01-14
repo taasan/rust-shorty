@@ -235,7 +235,7 @@ pub enum MetaVariableKind {
     ServerAdmin,
     ServerSignature,
     Tz,
-    UniqueID,
+    UniqueId,
     UserName,
 }
 
