@@ -23,6 +23,7 @@ git-version = "0.3"
 [workspace.lints.rust]
 unsafe_code = "forbid"
 unknown_lints = "forbid"
+elided_lifetimes_in_paths = "forbid"
 
 [workspace.lints.clippy]
 nursery = { level = "warn", priority = -1 }
