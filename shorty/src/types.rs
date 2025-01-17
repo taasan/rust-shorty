@@ -9,7 +9,7 @@ use rusqlite::{
 pub struct InvalidShortUrlName;
 
 impl fmt::Display for InvalidShortUrlName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Invalid short URL name")
     }
 }
@@ -26,7 +26,7 @@ impl From<FromSqlError> for InvalidShortUrlName {
 pub struct InvalidUrl;
 
 impl fmt::Display for InvalidUrl {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Invalid short URL")
     }
 }
@@ -55,7 +55,7 @@ impl PartialEq for ShortUrlName {
 }
 
 impl fmt::Display for ShortUrlName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -103,7 +103,7 @@ impl ToSql for ShortUrlName {
 pub struct Url(url::Url);
 
 impl fmt::Display for Url {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -162,7 +162,7 @@ pub struct ShortUrl {
 }
 
 impl fmt::Display for ShortUrl {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} -> {}", self.name, self.url)
     }
 }
@@ -181,7 +181,7 @@ pub enum InvalidShortUrl {
 }
 
 impl fmt::Display for InvalidShortUrl {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidName(e) => write!(f, "Invalid short URL name: {e}"),
             Self::InvalidUrl(e) => write!(f, "Invalid short URL: {e}"),
