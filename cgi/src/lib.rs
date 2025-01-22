@@ -8,7 +8,7 @@ extern crate html5ever;
 
 pub mod cgi_env;
 pub mod controller;
-pub mod templates;
+mod templates;
 
 #[inline]
 fn serialize_headers(
@@ -71,17 +71,17 @@ pub fn html_response(status_code: StatusCode, body: String) -> http::Response<St
 }
 
 #[must_use]
-pub fn text_response(status_code: StatusCode, body: String) -> http::Response<String> {
+pub fn text_response<T: AsRef<str>>(status_code: StatusCode, body: T) -> http::Response<String> {
     response(status_code, body, ContentType::text_utf8())
 }
 
 #[must_use]
-pub fn response(
+pub fn response<T: AsRef<str>>(
     status_code: StatusCode,
-    body: String,
+    body: T,
     content_type: ContentType,
 ) -> http::Response<String> {
-    let mut response = http::Response::new(body);
+    let mut response = http::Response::new(body.as_ref().to_string());
     *response.status_mut() = status_code;
     response.headers_mut().typed_insert(content_type);
     response

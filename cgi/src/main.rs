@@ -1,9 +1,10 @@
-use cgi::cgi_env::{CgiEnv, Environment, OsEnvironment, PathInfo};
+use cgi::cgi_env::{CgiEnv, Environment, MetaVariableKind, OsEnvironment, PathInfo};
 use cgi::controller::{
     Controller, ErrorController, QuotationController, ShortUrlController, ShortUrlControllerParams,
 };
 use cgi::{serialize_response, text_response};
 use core::fmt;
+use core::str::FromStr;
 use http::StatusCode;
 use matchit::{Match, MatchError, Router};
 use shorty::repository::{open_sqlite3_repository, Repository};
@@ -16,6 +17,7 @@ enum Route {
     Home,
     ShortUrl,
     Debug,
+    ErrorDocument,
 }
 
 fn main() {
@@ -63,6 +65,7 @@ fn run() -> Result<http::Response<String>, Box<dyn core::error::Error>> {
     router.insert(format!("/{{{SHORT_URL_PARAM}}}"), Route::ShortUrl)?;
     router.insert("/", Route::Home)?;
     router.insert("", Route::Home)?;
+    router.insert("/error/doc", Route::ErrorDocument)?;
     router.insert("/debug/env", Route::Debug)?;
     handle(&CgiEnv::new(OsEnvironment), &router)
 }
@@ -154,6 +157,16 @@ fn handle<T: fmt::Debug + Environment>(
             let response =
                 text_response(StatusCode::OK, format!("{cgi_env:#?}\n\n{request:#?}\n",));
             Ok(response)
+        }
+        Ok(Match {
+            value: Route::ErrorDocument,
+            params: _params,
+        }) => {
+            let status_code = cgi_env
+                .getenv(MetaVariableKind::RedirectStatus)
+                .and_then(|x| http::StatusCode::from_str(&x).ok())
+                .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+            Ok(ErrorController {}.respond((status_code, String::new()))?)
         }
     };
 

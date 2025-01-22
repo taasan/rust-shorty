@@ -152,7 +152,7 @@ where
 
     // Environment
     #[must_use]
-    fn getenv(&self, key: MetaVariableKind) -> Option<String> {
+    pub fn getenv(&self, key: MetaVariableKind) -> Option<String> {
         self.env.var(key.to_string())
     }
 
