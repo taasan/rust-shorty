@@ -176,15 +176,15 @@ impl ShortUrl {
 
 #[derive(Debug, Clone, Copy)]
 pub enum InvalidShortUrl {
-    InvalidName(InvalidShortUrlName),
-    InvalidUrl(InvalidUrl),
+    InvalidName,
+    InvalidUrl,
 }
 
 impl fmt::Display for InvalidShortUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidName(e) => write!(f, "Invalid short URL name: {e}"),
-            Self::InvalidUrl(e) => write!(f, "Invalid short URL: {e}"),
+            Self::InvalidName => write!(f, "Invalid short URL name"),
+            Self::InvalidUrl => write!(f, "Invalid short URL url"),
         }
     }
 }
@@ -192,14 +192,14 @@ impl fmt::Display for InvalidShortUrl {
 impl core::error::Error for InvalidShortUrl {}
 
 impl From<InvalidShortUrlName> for InvalidShortUrl {
-    fn from(value: InvalidShortUrlName) -> Self {
-        Self::InvalidName(value)
+    fn from(_: InvalidShortUrlName) -> Self {
+        Self::InvalidName
     }
 }
 
 impl From<InvalidUrl> for InvalidShortUrl {
-    fn from(value: InvalidUrl) -> Self {
-        Self::InvalidUrl(value)
+    fn from(_: InvalidUrl) -> Self {
+        Self::InvalidUrl
     }
 }
 
