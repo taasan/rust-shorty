@@ -9,6 +9,7 @@ use http::StatusCode;
 use matchit::{Match, MatchError, Router};
 use shorty::repository::{open_sqlite3_repository, Repository};
 use shorty::types::ShortUrlName;
+use std::path::Path;
 
 const SHORT_URL_PARAM: &str = "short_url";
 
@@ -20,7 +21,28 @@ enum Route {
     ErrorDocument,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn core::error::Error>> {
+    let cgi_env = &CgiEnv::new(OsEnvironment);
+    if cgi_env.is_cgi() {
+        cgi_main(cgi_env);
+    } else {
+        use std::env;
+        let args: Vec<_> = env::args_os().collect();
+        if args.len() == 3 && args[1] == *"migrate" {
+            run_migrations(&args[2])?;
+        } else {
+            return Err("Unknown command".into());
+        }
+    }
+    Ok(())
+}
+
+fn run_migrations<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn core::error::Error>> {
+    let mut repo = open_sqlite3_repository(path)?;
+    Ok(repo.migrate()?)
+}
+
+fn cgi_main<T: fmt::Debug + Environment>(cgi_env: &CgiEnv<T>) {
     std::panic::set_hook(Box::new(|panic_info| {
         let mut out = std::io::stdout().lock();
         #[allow(clippy::option_if_let_else)]
@@ -44,7 +66,7 @@ fn main() {
     let mut out = std::io::stdout().lock();
 
     #[allow(clippy::unwrap_used)]
-    match run() {
+    match run(cgi_env) {
         Ok(response) => {
             serialize_response(response, &mut out).unwrap();
         }
@@ -60,14 +82,16 @@ fn main() {
     }
 }
 
-fn run() -> Result<http::Response<String>, Box<dyn core::error::Error>> {
+fn run<T: fmt::Debug + Environment>(
+    cgi_env: &CgiEnv<T>,
+) -> Result<http::Response<String>, Box<dyn core::error::Error>> {
     let mut router = Router::new();
     router.insert(format!("/{{{SHORT_URL_PARAM}}}"), Route::ShortUrl)?;
     router.insert("/", Route::Home)?;
     router.insert("", Route::Home)?;
     router.insert("/error/doc", Route::ErrorDocument)?;
     router.insert("/debug/env", Route::Debug)?;
-    handle(&CgiEnv::new(OsEnvironment), &router)
+    handle(cgi_env, &router)
 }
 
 fn repo_from_env() -> Result<impl Repository, Box<dyn core::error::Error>> {

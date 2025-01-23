@@ -12,13 +12,16 @@ pub enum RepositoryError {
 
     #[error("invalid short url name")]
     InvalidShortUrlName(InvalidShortUrlName),
+
+    #[error("{0:?}")]
+    MigrationError(#[from] rusqlite_migration::Error),
 }
 
 pub trait Repository {
     /// # Errors
     ///
     /// May return a `RepositoryError` if the migration fails.
-    fn migrate(&self) -> Result<(), RepositoryError>;
+    fn migrate(&mut self) -> Result<(), RepositoryError>;
 
     /// # Errors
     ///
@@ -27,7 +30,7 @@ pub trait Repository {
 
     /// # Errors
     /// May return a `RepositoryError` if database communication fails.
-    fn insert_url(&self, short_url: &ShortUrl) -> Result<(), RepositoryError>;
+    fn insert_url(&mut self, short_url: &ShortUrl) -> Result<(), RepositoryError>;
 
     /// # Errors
     /// May return a `RepositoryError` if database communication fails.
@@ -35,7 +38,7 @@ pub trait Repository {
 
     /// # Errors
     /// May return a `RepositoryError` if database communication fails.
-    fn insert_quotation(&self, collection: &str) -> Result<(), RepositoryError>;
+    fn insert_quotation(&mut self, collection: &str) -> Result<(), RepositoryError>;
 }
 
 /// # Errors
@@ -51,7 +54,7 @@ pub fn open_sqlite3_repository<P: AsRef<Path>>(
 /// # Errors
 ///
 /// Will return `Err` if the underlying SQLite open call fails.
-pub fn open_sqlite3_repository_in_memory() -> Result<impl Repository, rusqlite::Error> {
+pub fn open_sqlite3_repository_in_memory() -> Result<impl Repository, RepositoryError> {
     Ok(sqlite::Sqlite3Repo::new(
         rusqlite::Connection::open_in_memory()?,
     ))

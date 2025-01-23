@@ -109,7 +109,7 @@ mod test {
     use shorty::{repository::open_sqlite3_repository_in_memory, types::ShortUrl};
 
     fn repo(migrate: bool) -> impl Repository {
-        let repo = open_sqlite3_repository_in_memory().unwrap();
+        let mut repo = open_sqlite3_repository_in_memory().unwrap();
         if migrate {
             repo.migrate().unwrap();
         }
@@ -128,7 +128,7 @@ mod test {
     #[test]
     fn test_quotation_controller() {
         const QUOTE: &str = "A<>'\"";
-        let repo = repo(true);
+        let mut repo = repo(true);
         repo.insert_quotation(QUOTE).unwrap();
         let controller = QuotationController::new(repo);
 
@@ -152,7 +152,7 @@ mod test {
 
     #[test]
     fn test_short_url_controller() {
-        let repo = repo(true);
+        let mut repo = repo(true);
         let short_url = ShortUrl::try_from(("surl", "https://example.com")).unwrap();
         repo.insert_url(&short_url).unwrap();
         let controller = ShortUrlController::new(repo);
