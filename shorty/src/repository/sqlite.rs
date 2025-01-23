@@ -1,8 +1,10 @@
 use core::result::Result;
 use std::path::Path;
+use std::sync::OnceLock;
 
 use crate::types::{ShortUrl, ShortUrlName};
-use rusqlite::{Connection, OpenFlags, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension};
+use rusqlite_migration::{Migrations, M};
 
 use super::{Repository, RepositoryError};
 
@@ -21,32 +23,27 @@ impl Sqlite3Repo {
     /// Will return `Err` if `path` cannot be converted to a C-compatible
     /// string or if the underlying SQLite open call fails.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, RepositoryError> {
-        let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        let conn = Connection::open(path)?;
         Ok(Self::new(conn))
     }
 }
 
+fn migrations() -> Migrations<'static> {
+    static MIGRATIONS: OnceLock<Migrations<'_>> = OnceLock::new();
+    MIGRATIONS
+        .get_or_init(|| {
+            Migrations::new(vec![
+                M::up(include_str!("migrations/sqlite/1.up.sql"))
+                    .down(include_str!("migrations/sqlite/1.down.sql")),
+                // In the future, add more migrations here:
+            ])
+        })
+        .clone()
+}
+
 impl Repository for Sqlite3Repo {
-    fn migrate(&self) -> Result<(), RepositoryError> {
-        Ok(self.conn.execute_batch(
-            r"
-            CREATE TABLE IF NOT EXISTS urls (
-                shortUrl TEXT PRIMARY KEY COLLATE NOCASE,
-                url TEXT NOT NULL
-                CHECK (LENGTH(shortUrl) >= 2)
-                CHECK (LENGTH(shortUrl) <= 16)
-                CHECK (url LIKE 'https://%' OR url LIKE 'http://%')
-            )
-            STRICT;
-
-            CREATE TABLE IF NOT EXISTS quotations (
-                collection TEXT NOT NULL COLLATE NOCASE,
-                quote TEXT NOT NULL
-            ) STRICT;
-
-            CREATE UNIQUE INDEX IF NOT EXISTS collection_quote ON quotations(collection, quote);
-            ",
-        )?)
+    fn migrate(&mut self) -> Result<(), RepositoryError> {
+        Ok(migrations().to_latest(&mut self.conn)?)
     }
 
     fn get_url(&self, id: &ShortUrlName) -> Result<Option<ShortUrl>, RepositoryError> {
@@ -59,7 +56,7 @@ impl Repository for Sqlite3Repo {
             .optional()?)
     }
 
-    fn insert_url(&self, short_url: &ShortUrl) -> Result<(), RepositoryError> {
+    fn insert_url(&mut self, short_url: &ShortUrl) -> Result<(), RepositoryError> {
         let query = "INSERT OR REPLACE INTO urls (shortUrl, url) VALUES (?, ?)";
         self.conn
             .execute(query, rusqlite::params![short_url.name, short_url.url])?;
@@ -75,7 +72,7 @@ impl Repository for Sqlite3Repo {
             .unwrap_or_else(|| "Don't panic\n    -- Douglas Adams".to_string()))
     }
 
-    fn insert_quotation(&self, collection: &str) -> Result<(), RepositoryError> {
+    fn insert_quotation(&mut self, collection: &str) -> Result<(), RepositoryError> {
         let query = "INSERT INTO quotations (collection, quote) VALUES (?, ?)";
         self.conn
             .execute(query, rusqlite::params!["default", collection])?;
@@ -88,10 +85,13 @@ mod test {
     use rusqlite::Connection;
 
     use super::Sqlite3Repo;
-    use crate::{repository::Repository, types::ShortUrl};
+    use crate::{
+        repository::{sqlite::migrations, Repository},
+        types::ShortUrl,
+    };
 
     fn repo() -> Sqlite3Repo {
-        let repo = Sqlite3Repo::new(Connection::open_in_memory().unwrap());
+        let mut repo = Sqlite3Repo::new(Connection::open_in_memory().unwrap());
         repo.migrate().unwrap();
         repo
     }
@@ -100,7 +100,7 @@ mod test {
     fn test_insert_and_get() {
         const NAME: &str = "test";
         let short_url = ShortUrl::try_from((NAME, "https://example.com")).unwrap();
-        let repo = repo();
+        let mut repo = repo();
 
         // No match returns None
         let result = repo.get_url(&short_url.name).unwrap();
@@ -116,5 +116,10 @@ mod test {
         repo.insert_url(&short_url).unwrap();
         let result = repo.get_url(&short_url.name).unwrap();
         assert_eq!(result, Some(short_url));
+    }
+
+    #[test]
+    fn migrations_test() {
+        assert!(migrations().validate().is_ok());
     }
 }

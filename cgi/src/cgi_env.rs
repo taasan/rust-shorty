@@ -112,6 +112,7 @@ where
     pub const fn new(env: E) -> Self {
         Self { env }
     }
+
     /// # Errors
     /// If required environment variables are missing or if the url cannot be built.
     pub fn new_request(&self) -> Result<http::Request<()>, CgiEnvError> {
@@ -148,6 +149,10 @@ where
             .body(())?;
         req.headers_mut().extend(headers);
         Ok(req)
+    }
+
+    pub fn is_cgi(&self) -> bool {
+        self.getenv(MetaVariableKind::GatewayInterface).is_some()
     }
 
     // Environment

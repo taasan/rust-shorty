@@ -6,6 +6,7 @@ license = "MIT"
 
 [dependencies]
 rusqlite = { workspace = true }
+rusqlite_migration = { workspace = true, features = ["from-directory"] }
 url = { workspace = true }
 thiserror = { workspace = true }
 
