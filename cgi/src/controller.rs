@@ -137,7 +137,7 @@ mod test {
         assert_eq!(res.status(), StatusCode::OK);
         assert!(res
             .body()
-            .contains("<blockquote>A&lt;&gt;&#x27;&quot;</blockquote>"));
+            .contains("<blockquote>A&#60;&#62;&#39;&#34;</blockquote>"));
     }
 
     #[test]
@@ -206,6 +206,6 @@ mod test {
             .unwrap();
 
         assert_eq!(res.status(), StatusCode::IM_A_TEAPOT);
-        assert!(res.body().contains("<h2>418 I&#x27;m a teapot</h2>"));
+        assert!(res.body().contains("<h2>418 I&#39;m a teapot</h2>"));
     }
 }
