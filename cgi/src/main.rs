@@ -40,6 +40,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
             dsn,
             sentry::ClientOptions {
                 release: Some(cgi::VERSION.into()),
+                session_mode: sentry::SessionMode::Request,
                 ..Default::default()
             },
         ))),
