@@ -20,6 +20,15 @@ serde_plain = { version = "1.0", default-features = false }
 thiserror = "2"
 anyhow = "1.0"
 git-version = "0.3"
+sentry = { version = "0.36", default-features = false, features = [
+  "reqwest",
+  "rustls",
+  "backtrace",
+  "contexts",
+  "debug-images",
+  "panic",
+] }
+toml = { version = "0.8" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

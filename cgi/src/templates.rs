@@ -1,14 +1,9 @@
 use askama::Template;
-use git_version::git_version;
 use http::StatusCode;
 use qrcode::{render::svg, types::QrError, QrCode};
 use shorty::types::ShortUrl;
 
-const VERSION: &str = git_version!(
-    prefix = "git:",
-    cargo_prefix = "cargo:",
-    fallback = "unknown"
-);
+use crate::VERSION;
 
 #[derive(Template)]
 #[template(path = "http_error.html")]

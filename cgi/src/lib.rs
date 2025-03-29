@@ -2,6 +2,8 @@ use headers::{ContentType, HeaderMapExt};
 use http::StatusCode;
 use std::time::SystemTime;
 
+use git_version::git_version;
+
 #[cfg(test)]
 #[macro_use]
 extern crate html5ever;
@@ -9,6 +11,8 @@ extern crate html5ever;
 pub mod cgi_env;
 pub mod controller;
 mod templates;
+
+pub const VERSION: &str = git_version!(prefix = "", cargo_prefix = "cargo:", fallback = "unknown");
 
 #[inline]
 fn serialize_headers(

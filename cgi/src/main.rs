@@ -9,7 +9,8 @@ use http::StatusCode;
 use matchit::{Match, MatchError, Router};
 use shorty::repository::{open_sqlite3_repository, Repository};
 use shorty::types::ShortUrlName;
-use std::path::Path;
+use std::sync::Once;
+use std::{env, fs, path::Path, path::PathBuf};
 
 const SHORT_URL_PARAM: &str = "short_url";
 
@@ -22,19 +23,56 @@ enum Route {
 }
 
 fn main() -> Result<(), Box<dyn core::error::Error>> {
+    let args: Vec<_> = env::args_os().collect();
+    if !matches!(args.len(), 2 | 3) {
+        eprintln!("Usage: shorty [--migrate] config.toml");
+        return Err("Missing config file argument".into());
+    }
+    let exe_path = args.last().ok_or("Exe path not found")?;
+    let exe_path = fs::canonicalize(exe_path)?;
+    let config = read_config(exe_path)?;
+
+    let _guard = match &config.sentry {
+        Some(SentryConfig { enabled: true, dsn }) => Some(sentry::init((
+            dsn,
+            sentry::ClientOptions {
+                release: sentry::release_name!(),
+                ..Default::default()
+            },
+        ))),
+        _ => None,
+    };
     let cgi_env = &CgiEnv::new(OsEnvironment);
     if cgi_env.is_cgi() {
-        cgi_main(cgi_env);
+        cgi_main(&config, cgi_env);
+    } else if args.len() == 3 && args[1] == *"--migrate" {
+        run_migrations(config.database_file)?;
     } else {
-        use std::env;
-        let args: Vec<_> = env::args_os().collect();
-        if args.len() == 3 && args[1] == *"migrate" {
-            run_migrations(&args[2])?;
-        } else {
-            return Err("Unknown command".into());
-        }
+        return Err("Unknown command".into());
     }
     Ok(())
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct SentryConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    pub dsn: sentry::types::Dsn,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct Config {
+    pub database_file: PathBuf,
+    pub sentry: Option<SentryConfig>,
+}
+
+fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn core::error::Error>> {
+    let content = fs::read_to_string(&path)?;
+    let config_start = content.lines().skip(1).collect::<Vec<_>>().join("\n");
+    match toml::from_str(&config_start) {
+        Ok(x) => Ok(x),
+        Err(err) => Err(err.to_string().into()),
+    }
 }
 
 fn run_migrations<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn core::error::Error>> {
@@ -42,31 +80,39 @@ fn run_migrations<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn core::error::Er
     Ok(repo.migrate()?)
 }
 
-fn cgi_main<T: fmt::Debug + Environment>(cgi_env: &CgiEnv<T>) {
-    std::panic::set_hook(Box::new(|panic_info| {
-        let mut out = std::io::stdout().lock();
-        #[allow(clippy::option_if_let_else)]
-        let payload = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
-            format!("panic occurred: {s:?}")
-        } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
-            format!("panic occurred: {s:?}")
-        } else {
-            "<none>".to_string()
-        };
-        let backtrace = std::backtrace::Backtrace::capture();
-        let _ = serialize_response(
-            text_response(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("{panic_info:#?}\n\nPayload: {payload}\n\n{backtrace}"),
-            ),
-            &mut out,
-        );
-    }));
+fn setup_cgi() {
+    static INIT: Once = Once::new();
+    INIT.call_once(|| {
+        let next = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |panic_info| {
+            let mut out = std::io::stdout().lock();
+            #[allow(clippy::option_if_let_else)]
+            let payload = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+                format!("panic occurred: {s:?}")
+            } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+                format!("panic occurred: {s:?}")
+            } else {
+                "<none>".to_string()
+            };
+            let backtrace = std::backtrace::Backtrace::capture();
+            let _ = serialize_response(
+                text_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("{panic_info:#?}\n\nPayload: {payload}\n\n{backtrace}"),
+                ),
+                &mut out,
+            );
+            next(panic_info);
+        }));
+    });
+}
 
+fn cgi_main<T: fmt::Debug + Environment>(config: &Config, cgi_env: &CgiEnv<T>) {
+    setup_cgi();
     let mut out = std::io::stdout().lock();
 
     #[allow(clippy::unwrap_used)]
-    match run(cgi_env) {
+    match run(config, cgi_env) {
         Ok(response) => {
             serialize_response(response, &mut out).unwrap();
         }
@@ -83,6 +129,7 @@ fn cgi_main<T: fmt::Debug + Environment>(cgi_env: &CgiEnv<T>) {
 }
 
 fn run<T: fmt::Debug + Environment>(
+    config: &Config,
     cgi_env: &CgiEnv<T>,
 ) -> Result<http::Response<String>, Box<dyn core::error::Error>> {
     let mut router = Router::new();
@@ -91,33 +138,16 @@ fn run<T: fmt::Debug + Environment>(
     router.insert("", Route::Home)?;
     router.insert("/error/doc", Route::ErrorDocument)?;
     router.insert("/debug/env", Route::Debug)?;
-    handle(cgi_env, &router)
+    handle(config, cgi_env, &router)
 }
 
-fn repo_from_env() -> Result<impl Repository, Box<dyn core::error::Error>> {
-    use std::env;
-    // Linux
-    //
-    // https://lists.gnu.org/archive/html/bug-bash/2008-05/msg00052.html
-    //
-    // It's actually the kernel that interprets that line, not bash.  The
-    // historical behavior is that space separates the interpreter from an
-    // optional argument, and there is no escape mechanism, so there's no way
-    // to specify an interpreter with a space in the path.  It's unlikely
-    // that this would ever change, since that would break existing scripts
-    // that rely on thecurrent behavior.
-    //
-    // Create an executable file with the following shebang:
-    // #! <path to binary> <path to database>
-    let path = env::args_os().nth(1).ok_or_else(|| {
-        core::convert::Into::<Box<dyn core::error::Error>>::into(
-            "missing argument: path to database",
-        )
-    })?;
+fn repo_from_config(config: &Config) -> Result<impl Repository, Box<dyn core::error::Error>> {
+    let path = config.database_file.clone();
     Ok(open_sqlite3_repository(path)?)
 }
 
 fn handle<T: fmt::Debug + Environment>(
+    config: &Config,
     cgi_env: &CgiEnv<T>,
     router: &Router<Route>,
 ) -> Result<http::Response<String>, Box<dyn core::error::Error>> {
@@ -134,7 +164,7 @@ fn handle<T: fmt::Debug + Environment>(
         }) => {
             let uri = request.uri();
             if (uri.query().unwrap_or_default()).is_empty() {
-                let repo = repo_from_env()?;
+                let repo = repo_from_config(config)?;
                 let controller = QuotationController::new(repo);
                 let response = controller.respond(())?;
                 Ok(response)
@@ -154,7 +184,7 @@ fn handle<T: fmt::Debug + Environment>(
                 let short_url = params.get(SHORT_URL_PARAM).unwrap().to_string();
                 match ShortUrlName::try_from(short_url.as_str()) {
                     Ok(short_url) => {
-                        let repo = repo_from_env()?;
+                        let repo = repo_from_config(config)?;
                         let controller = ShortUrlController::new(repo);
                         let params = ShortUrlControllerParams {
                             name: short_url,
