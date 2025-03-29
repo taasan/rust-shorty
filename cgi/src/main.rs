@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
     let exe_path = fs::canonicalize(exe_path)?;
     let config = read_config(exe_path)?;
 
+    #[cfg(feature = "sentry")]
     let _guard = match &config.sentry {
         Some(SentryConfig { enabled: true, dsn }) => Some(sentry::init((
             dsn,
@@ -54,6 +55,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[cfg(feature = "sentry")]
 struct SentryConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -63,6 +65,7 @@ struct SentryConfig {
 #[derive(Debug, serde::Deserialize)]
 struct Config {
     pub database_file: PathBuf,
+    #[cfg(feature = "sentry")]
     pub sentry: Option<SentryConfig>,
 }
 
