@@ -36,11 +36,16 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 
     #[cfg(feature = "sentry")]
     let _guard = match &config.sentry {
-        Some(SentryConfig { enabled: true, dsn }) => Some(sentry::init((
+        Some(SentryConfig {
+            enabled: true,
+            dsn,
+            debug,
+        }) => Some(sentry::init((
             dsn,
             sentry::ClientOptions {
                 release: Some(cgi::VERSION.into()),
                 session_mode: sentry::SessionMode::Request,
+                debug: *debug,
                 ..Default::default()
             },
         ))),
