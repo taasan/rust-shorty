@@ -4,7 +4,7 @@
   <section class="http-error">
     <h2>{{- status_code -}}</h2>
     {% if details != "" %}
-    <p>{{ details }}</p>
+    <pre>{{ details }}</pre>
     {% endif -%}
   </section>
 {%- endblock -%}

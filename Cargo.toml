@@ -17,7 +17,6 @@ qrcode = { version = "0.14", default-features = false }
 base64 = { version = "0.22", default-features = true }
 serde = { version = "1.0", default-features = true }
 serde_plain = { version = "1.0", default-features = false }
-thiserror = "2"
 anyhow = "1.0"
 git-version = "0.3"
 sentry = { version = "0.36", default-features = false, features = [
@@ -27,6 +26,7 @@ sentry = { version = "0.36", default-features = false, features = [
   "contexts",
   "debug-images",
   "panic",
+  "anyhow"
 ] }
 toml = { version = "0.8" }
 

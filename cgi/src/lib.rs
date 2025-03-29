@@ -10,6 +10,8 @@ extern crate html5ever;
 
 pub mod cgi_env;
 pub mod controller;
+#[cfg(feature = "sentry")]
+pub mod sentry;
 mod templates;
 
 pub const VERSION: &str = git_version!(prefix = "", cargo_prefix = "cargo:", fallback = "unknown");

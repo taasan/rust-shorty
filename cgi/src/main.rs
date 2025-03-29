@@ -2,6 +2,8 @@ use cgi::cgi_env::{CgiEnv, Environment, MetaVariableKind, OsEnvironment, PathInf
 use cgi::controller::{
     Controller, ErrorController, QuotationController, ShortUrlController, ShortUrlControllerParams,
 };
+#[cfg(feature = "sentry")]
+use cgi::sentry::SentryConfig;
 use cgi::{serialize_response, text_response};
 use core::fmt;
 use core::str::FromStr;
@@ -37,7 +39,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
         Some(SentryConfig { enabled: true, dsn }) => Some(sentry::init((
             dsn,
             sentry::ClientOptions {
-                release: sentry::release_name!(),
+                release: Some(cgi::VERSION.into()),
                 ..Default::default()
             },
         ))),
@@ -55,32 +57,21 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 }
 
 #[derive(Debug, serde::Deserialize)]
-#[cfg(feature = "sentry")]
-struct SentryConfig {
-    #[serde(default)]
-    pub enabled: bool,
-    pub dsn: sentry::types::Dsn,
-}
-
-#[derive(Debug, serde::Deserialize)]
 struct Config {
     pub database_file: PathBuf,
     #[cfg(feature = "sentry")]
     pub sentry: Option<SentryConfig>,
 }
 
-fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn core::error::Error>> {
+fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, anyhow::Error> {
     let content = fs::read_to_string(&path)?;
     let config_start = content.lines().skip(1).collect::<Vec<_>>().join("\n");
-    match toml::from_str(&config_start) {
-        Ok(x) => Ok(x),
-        Err(err) => Err(err.to_string().into()),
-    }
+    Ok(toml::from_str(&config_start)?)
 }
 
-fn run_migrations<P: AsRef<Path>>(path: P) -> Result<(), Box<dyn core::error::Error>> {
+fn run_migrations<P: AsRef<Path>>(path: P) -> Result<(), anyhow::Error> {
     let mut repo = open_sqlite3_repository(path)?;
-    Ok(repo.migrate()?)
+    repo.migrate()
 }
 
 fn setup_cgi() {
@@ -120,9 +111,11 @@ fn cgi_main<T: fmt::Debug + Environment>(config: &Config, cgi_env: &CgiEnv<T>) {
             serialize_response(response, &mut out).unwrap();
         }
         Err(err) => {
+            #[cfg(feature = "sentry")]
+            sentry::integrations::anyhow::capture_anyhow(&err);
             serialize_response(
                 ErrorController {}
-                    .respond((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+                    .respond((StatusCode::INTERNAL_SERVER_ERROR, format!("{err:#?}")))
                     .unwrap(),
                 &mut out,
             )
@@ -134,7 +127,7 @@ fn cgi_main<T: fmt::Debug + Environment>(config: &Config, cgi_env: &CgiEnv<T>) {
 fn run<T: fmt::Debug + Environment>(
     config: &Config,
     cgi_env: &CgiEnv<T>,
-) -> Result<http::Response<String>, Box<dyn core::error::Error>> {
+) -> Result<http::Response<String>, anyhow::Error> {
     let mut router = Router::new();
     router.insert(format!("/{{{SHORT_URL_PARAM}}}"), Route::ShortUrl)?;
     router.insert("/", Route::Home)?;
@@ -144,19 +137,24 @@ fn run<T: fmt::Debug + Environment>(
     handle(config, cgi_env, &router)
 }
 
-fn repo_from_config(config: &Config) -> Result<impl Repository, Box<dyn core::error::Error>> {
+fn repo_from_config(config: &Config) -> Result<impl Repository, anyhow::Error> {
     let path = config.database_file.clone();
-    Ok(open_sqlite3_repository(path)?)
+    open_sqlite3_repository(path)
 }
 
 fn handle<T: fmt::Debug + Environment>(
     config: &Config,
     cgi_env: &CgiEnv<T>,
     router: &Router<Route>,
-) -> Result<http::Response<String>, Box<dyn core::error::Error>> {
-    let request = cgi_env.new_request()?;
+) -> Result<http::Response<String>, anyhow::Error> {
+    let request = &cgi_env.new_request()?;
+    #[cfg(feature = "sentry")]
+    {
+        cgi::sentry::add_request_context(request);
+        cgi::sentry::add_cgi_context(cgi_env);
+    }
     if request.method() != http::Method::GET {
-        return Ok(ErrorController {}.respond((StatusCode::METHOD_NOT_ALLOWED, String::new()))?);
+        return ErrorController {}.respond((StatusCode::METHOD_NOT_ALLOWED, String::new()));
     }
     #[allow(clippy::unwrap_used)]
     let path_info = request.extensions().get::<PathInfo>().unwrap();
@@ -227,6 +225,5 @@ fn handle<T: fmt::Debug + Environment>(
         }
     };
 
-    drop(request);
     res
 }

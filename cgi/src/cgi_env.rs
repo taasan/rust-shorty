@@ -37,13 +37,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let vars: BTreeMap<_, _> = self.env.vars().collect();
-        let cgi_vars: BTreeMap<_, _> = vars
-            .iter()
-            .filter(|(k, _)| {
-                k.to_str()
-                    .is_some_and(|k| MetaVariableKind::from_str(k).is_ok())
-            })
-            .collect();
+        let cgi_vars: BTreeMap<_, _> = self.iter().collect();
         f.debug_struct("CgiEnv")
             .field("os_env", &vars)
             .field("cgi_env", &cgi_vars)
@@ -184,10 +178,21 @@ where
             })
             .collect()
     }
+
+    #[allow(clippy::iter_without_into_iter)]
+    pub fn iter(&self) -> impl Iterator<Item = (MetaVariableKind, String)> + use<'_, E> {
+        self.env.vars().filter_map(|(k, v)| {
+            k.to_str().and_then(|k| {
+                MetaVariableKind::from_str(k)
+                    .ok()
+                    .and_then(|k| Some((k, v.to_str()?.into())))
+            })
+        })
+    }
 }
 
 // https://datatracker.ietf.org/doc/html/rfc3875#section-4.1
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum MetaVariableKind {
     AuthType,
