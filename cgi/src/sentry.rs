@@ -5,7 +5,11 @@ use sentry::{Breadcrumb, Level};
 pub struct SentryConfig {
     #[serde(default)]
     pub enabled: bool,
+
     pub dsn: sentry::types::Dsn,
+
+    #[serde(default)]
+    pub debug: bool,
 }
 
 pub fn add_breadcrumb(category: &str, message: String) {
