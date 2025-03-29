@@ -25,20 +25,41 @@ pub struct QuotationTemplate {
     pub quote: String,
 }
 
+#[allow(clippy::unnecessary_wraps)]
 mod filters {
+    use core::convert::Infallible;
     use core::fmt;
 
-    use ::askama::Result;
+    use ::askama::filters::Safe;
     use fmt::Display;
 
-    pub fn qrcode<T: Display>(s: T) -> Result<String> {
+    pub fn qrcode<T: Display>(s: T) -> askama::Result<String> {
         super::qr_svg(s.to_string()).map_err(|err| ::askama::Error::Custom(Box::new(err)))
     }
 
-    #[allow(clippy::unnecessary_wraps)]
-    pub fn base64<T: Display>(s: T) -> Result<String> {
+    pub fn base64<T: Display>(s: T) -> Result<String, Infallible> {
         use base64::prelude::*;
         Ok(BASE64_STANDARD.encode(s.to_string()))
+    }
+
+    // Creates an HTML/SVG/MathML comment.
+    //
+    // Replaces -- with __
+    //
+    // Comments start with the string <!-- and end with the string
+    // -->, generally with text in between. This text cannot start
+    // with the string > or ->, cannot contain the strings --> or
+    // --!>, nor end with the string <!-, though <! is allowed.
+    //
+    // The above is true for XML comments as well. In addition, in
+    // XML, such as in SVG or MathML markup, a comment cannot contain
+    // the character sequence --
+    #[allow(clippy::doc_markdown)]
+    pub fn comment<T: Display>(s: T) -> Result<Safe<String>, Infallible> {
+        Ok(Safe(format!(
+            "<!-- {} -->",
+            s.to_string().replace("--", "__")
+        )))
     }
 }
 
