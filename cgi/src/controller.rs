@@ -44,7 +44,7 @@ where
                 Ok(response)
             }
             Ok(None) => ErrorController {}.respond((StatusCode::NOT_FOUND, String::new())),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(err),
         }
     }
 }
