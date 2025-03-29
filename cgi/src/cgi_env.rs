@@ -75,7 +75,6 @@ impl fmt::Display for CgiEnvError {
                 f.debug_tuple("CgiEnvError::InvalidUrl").field(x).finish()?;
             }
         }
-        f.debug_struct("CgiEnvError").finish()?;
 
         Ok(())
     }

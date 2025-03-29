@@ -16,9 +16,11 @@ serde = { workspace = true, features = ["derive"] }
 serde_plain = { workspace = true }
 anyhow = { workspace = true }
 git-version = { workspace = true }
+sentry = { workspace = true }
+toml = { workspace = true }
 
 [dev-dependencies]
-html5ever = "0.29.0"
+html5ever = "0.30"
 
 [lints]
 workspace = true
