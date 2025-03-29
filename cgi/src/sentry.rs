@@ -22,6 +22,16 @@ pub fn add_request_context<T>(request: &http::Request<T>) {
         let mut map = std::collections::BTreeMap::new();
         map.insert(String::from("method"), request.method().to_string().into());
         map.insert(String::from("uri"), request.uri().to_string().into());
+        map.insert(
+            String::from("headers"),
+            sentry::protocol::Value::Object(
+                request
+                    .headers()
+                    .iter()
+                    .map(|(k, v)| (format!("{k:?}"), format!("{v:?}").into()))
+                    .collect(),
+            ),
+        );
         scope.set_context("request", sentry::protocol::Context::Other(map));
     });
 }
