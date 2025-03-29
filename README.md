@@ -4,20 +4,27 @@ A simple url shortener written in rust.
 
 ## Database migrations
 
-TODO
+`shorty --migrate path/to/config.toml`
 
 ## Apache configuration
 
 Read the [CGI howto](https://httpd.apache.org/docs/1.4/howto/cgi.html)
 
-Create a web directory to store the cgi script and support files.
+Create a web directory to store the CGI script and support files.
 Copy the [./static](./static) directory to the web directory.
 
 Create an executable file `index.cgi` with the correct
 [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix))
 
-```text
-#!/path/to/executable /path/to/sqlite/database
+```toml
+#!/path/to/executable
+
+# Configuration in TOML format
+database_file = "/path/to/sqlite/database"
+
+[sentry]
+enabled = false
+dsn = "https://sentry@example.com/123"
 ```
 
 If Apache is configured to use
@@ -28,7 +35,7 @@ be owned by the user and have the correct permissions:
 chmod 750 index.cgi
 ```
 
-Create a `.htaccess` file to redirect all requests to the cgi script.
+Create a `.htaccess` file to redirect all requests to the CGI script.
 
 ```apacheconf
 AcceptPathInfo On
