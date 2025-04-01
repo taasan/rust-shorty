@@ -1,11 +1,9 @@
 use core::result::Result;
 use std::path::Path;
-use std::sync::OnceLock;
 
 use crate::types::{ShortUrl, ShortUrlName};
 use anyhow::{anyhow, Context};
-use rusqlite::{Connection, OptionalExtension};
-use rusqlite_migration::{Migrations, M};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 
 use super::Repository;
 
@@ -29,22 +27,28 @@ impl Sqlite3Repo {
     }
 }
 
-fn migrations() -> Migrations<'static> {
-    static MIGRATIONS: OnceLock<Migrations<'_>> = OnceLock::new();
-    MIGRATIONS
-        .get_or_init(|| {
-            Migrations::new(vec![
-                M::up(include_str!("migrations/sqlite/1.up.sql"))
-                    .down(include_str!("migrations/sqlite/1.down.sql")),
-                // In the future, add more migrations here:
-            ])
-        })
-        .clone()
-}
-
 impl Repository for Sqlite3Repo {
     fn migrate(&mut self) -> Result<(), anyhow::Error> {
-        Ok(migrations().to_latest(&mut self.conn)?)
+        // EXCLUSIVE ensures that it starts with an exclusive write lock. No other
+        // readers will be allowed. This generally shouldn't be needed if there is
+        // a file lock, but might be helpful in cases where cargo's `FileLock`
+        // failed.
+        let migrations = [include_str!("migrations/sqlite/1.up.sql")];
+        let tx = self
+            .conn
+            .transaction_with_behavior(TransactionBehavior::Exclusive)?;
+        let user_version =
+            tx.query_row("SELECT user_version FROM pragma_user_version", [], |row| {
+                row.get(0)
+            })?;
+        if user_version < migrations.len() {
+            for migration in &migrations[user_version..] {
+                tx.execute_batch(migration)?;
+            }
+            tx.pragma_update(None, "user_version", migrations.len())?;
+        }
+        tx.commit()?;
+        Ok(())
     }
 
     fn get_url(&self, id: &ShortUrlName) -> Result<Option<ShortUrl>, anyhow::Error> {
@@ -96,10 +100,7 @@ mod test {
     use rusqlite::Connection;
 
     use super::Sqlite3Repo;
-    use crate::{
-        repository::{sqlite::migrations, Repository},
-        types::ShortUrl,
-    };
+    use crate::{repository::Repository, types::ShortUrl};
 
     fn repo() -> Sqlite3Repo {
         let mut repo = Sqlite3Repo::new(Connection::open_in_memory().unwrap());
@@ -127,10 +128,5 @@ mod test {
         repo.insert_url(&short_url).unwrap();
         let result = repo.get_url(&short_url.name).unwrap();
         assert_eq!(result, Some(short_url));
-    }
-
-    #[test]
-    fn migrations_test() {
-        assert!(migrations().validate().is_ok());
     }
 }
