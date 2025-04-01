@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use cgi::cgi_env::{CgiEnv, Environment, MetaVariableKind, OsEnvironment, PathInfo};
 use cgi::controller::{
     Controller, ErrorController, QuotationController, ShortUrlController, ShortUrlControllerParams,
@@ -34,25 +35,25 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
     let exe_path = fs::canonicalize(exe_path)?;
     let config = read_config(exe_path)?;
 
-    #[cfg(feature = "sentry")]
-    let _guard = match &config.sentry {
-        Some(SentryConfig {
-            enabled: true,
-            dsn,
-            debug,
-        }) => Some(sentry::init((
-            dsn,
-            sentry::ClientOptions {
-                release: Some(cgi::VERSION.into()),
-                session_mode: sentry::SessionMode::Request,
-                debug: *debug,
-                ..Default::default()
-            },
-        ))),
-        _ => None,
-    };
     let cgi_env = &CgiEnv::new(OsEnvironment);
     if cgi_env.is_cgi() {
+        #[cfg(feature = "sentry")]
+        let _guard = match &config.sentry {
+            Some(SentryConfig {
+                enabled: true,
+                dsn,
+                debug,
+            }) => Some(sentry::init((
+                dsn,
+                sentry::ClientOptions {
+                    release: Some(cgi::VERSION.into()),
+                    session_mode: sentry::SessionMode::Request,
+                    debug: *debug,
+                    ..Default::default()
+                },
+            ))),
+            _ => None,
+        };
         cgi_main(&config, cgi_env);
     } else if args.len() == 3 && args[1] == *"--migrate" {
         run_migrations(config.database_file)?;
@@ -64,15 +65,27 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 
 #[derive(Debug, serde::Deserialize)]
 struct Config {
+    /// If relative, it will be resolved relative to the config file.
     pub database_file: PathBuf,
     #[cfg(feature = "sentry")]
     pub sentry: Option<SentryConfig>,
 }
 
 fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, anyhow::Error> {
-    let content = fs::read_to_string(&path)?;
+    let path = path.as_ref();
+    if path.is_relative() {
+        return Err(anyhow!("path must be absolute"));
+    }
+    let content = fs::read_to_string(path)?;
     let config_start = content.lines().skip(1).collect::<Vec<_>>().join("\n");
-    Ok(toml::from_str(&config_start)?)
+    let mut config: Config = toml::from_str(&config_start)?;
+    if config.database_file.is_relative() {
+        config.database_file = path
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("Failed to get parent directory"))?
+            .join(config.database_file);
+    }
+    Ok(config)
 }
 
 fn run_migrations<P: AsRef<Path>>(path: P) -> Result<(), anyhow::Error> {
@@ -170,7 +183,7 @@ fn handle<T: fmt::Debug + Environment>(
             params: _params,
         }) => {
             let uri = request.uri();
-            if (uri.query().unwrap_or_default()).is_empty() {
+            if uri.query().unwrap_or_default().is_empty() {
                 let repo = repo_from_config(config)?;
                 let controller = QuotationController::new(repo);
                 let response = controller.respond(())?;
@@ -186,7 +199,7 @@ fn handle<T: fmt::Debug + Environment>(
             params,
         }) => {
             let uri = request.uri();
-            if (uri.query().unwrap_or_default()).is_empty() {
+            if uri.query().unwrap_or_default().is_empty() {
                 #[allow(clippy::unwrap_used)]
                 let short_url = params.get(SHORT_URL_PARAM).unwrap().to_string();
                 match ShortUrlName::try_from(short_url.as_str()) {
