@@ -67,7 +67,6 @@ where
     write!(out, "\r\n")?;
     out.write_all(response.body().as_ref())?;
 
-    drop(response);
     Ok(())
 }
 
