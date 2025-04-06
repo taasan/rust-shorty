@@ -66,8 +66,8 @@ where
     serialize_headers(response.headers(), out)?;
     write!(out, "\r\n")?;
     out.write_all(response.body().as_ref())?;
+    out.flush()?;
 
-    drop(response);
     Ok(())
 }
 
