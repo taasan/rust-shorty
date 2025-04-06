@@ -8,6 +8,7 @@ use cgi::sentry::SentryConfig;
 use cgi::{serialize_response, text_response};
 use core::fmt;
 use core::str::FromStr;
+use headers::{CacheControl, HeaderMapExt as _};
 use http::StatusCode;
 use matchit::{Match, MatchError, Router};
 use shorty::repository::{open_sqlite3_repository, Repository};
@@ -228,8 +229,11 @@ fn handle<T: fmt::Debug + Environment>(
             value: Route::Debug,
             params: _params,
         }) => {
-            let response =
+            let mut response =
                 text_response(StatusCode::OK, format!("{cgi_env:#?}\n\n{request:#?}\n",));
+            response
+                .headers_mut()
+                .typed_insert(CacheControl::new().with_no_store());
             Ok(response)
         }
         Ok(Match {
