@@ -22,7 +22,6 @@ toml = { workspace = true }
 [features]
 default = ["sentry"]
 sentry = ["dep:sentry"]
-debug-routes = []
 
 [dev-dependencies]
 html5ever = "0.31"

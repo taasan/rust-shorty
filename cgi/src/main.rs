@@ -21,7 +21,7 @@ const SHORT_URL_PARAM: &str = "short_url";
 enum Route {
     Home,
     ShortUrl,
-    #[cfg(feature = "debug-routes")]
+    #[cfg(debug_assertions)]
     Debug,
     ErrorDocument,
 }
@@ -153,7 +153,7 @@ fn run<T: fmt::Debug + Environment>(
     router.insert("/", Route::Home)?;
     router.insert("", Route::Home)?;
     router.insert("/error/doc", Route::ErrorDocument)?;
-    #[cfg(feature = "debug-routes")]
+    #[cfg(debug_assertions)]
     router.insert("/debug/env", Route::Debug)?;
     handle(config, cgi_env, &router)
 }
@@ -226,7 +226,7 @@ fn handle<T: fmt::Debug + Environment>(
         Err(MatchError::NotFound) => {
             Ok(ErrorController {}.respond((StatusCode::NOT_FOUND, String::new()))?)
         }
-        #[cfg(feature = "debug-routes")]
+        #[cfg(debug_assertions)]
         Ok(Match {
             value: Route::Debug,
             params: _params,
