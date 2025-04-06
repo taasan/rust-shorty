@@ -8,7 +8,6 @@ use cgi::sentry::SentryConfig;
 use cgi::{serialize_response, text_response};
 use core::fmt;
 use core::str::FromStr;
-use headers::{CacheControl, HeaderMapExt as _};
 use http::StatusCode;
 use matchit::{Match, MatchError, Router};
 use shorty::repository::{open_sqlite3_repository, Repository};
@@ -22,6 +21,7 @@ const SHORT_URL_PARAM: &str = "short_url";
 enum Route {
     Home,
     ShortUrl,
+    #[cfg(feature = "debug-routes")]
     Debug,
     ErrorDocument,
 }
@@ -153,6 +153,7 @@ fn run<T: fmt::Debug + Environment>(
     router.insert("/", Route::Home)?;
     router.insert("", Route::Home)?;
     router.insert("/error/doc", Route::ErrorDocument)?;
+    #[cfg(feature = "debug-routes")]
     router.insert("/debug/env", Route::Debug)?;
     handle(config, cgi_env, &router)
 }
@@ -225,10 +226,12 @@ fn handle<T: fmt::Debug + Environment>(
         Err(MatchError::NotFound) => {
             Ok(ErrorController {}.respond((StatusCode::NOT_FOUND, String::new()))?)
         }
+        #[cfg(feature = "debug-routes")]
         Ok(Match {
             value: Route::Debug,
             params: _params,
         }) => {
+            use headers::{CacheControl, HeaderMapExt as _};
             let mut response =
                 text_response(StatusCode::OK, format!("{cgi_env:#?}\n\n{request:#?}\n",));
             response
