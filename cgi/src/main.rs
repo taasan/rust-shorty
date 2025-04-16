@@ -10,7 +10,9 @@ use core::fmt;
 use core::str::FromStr;
 use http::StatusCode;
 use matchit::{Match, MatchError, Router};
-use shorty::repository::{open_sqlite3_repository, Repository};
+use shorty::repository::{
+    open_sqlite3_repository, open_writable_sqlite3_repository, Repository, WritableRepository,
+};
 use shorty::types::ShortUrlName;
 use std::sync::Once;
 use std::{env, fs, path::Path, path::PathBuf};
@@ -90,7 +92,7 @@ fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, anyhow::Error> {
 }
 
 fn run_migrations<P: AsRef<Path>>(path: P) -> Result<(), anyhow::Error> {
-    let mut repo = open_sqlite3_repository(path)?;
+    let mut repo = open_writable_sqlite3_repository(path)?;
     repo.migrate()
 }
 

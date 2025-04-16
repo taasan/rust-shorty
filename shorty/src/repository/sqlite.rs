@@ -3,9 +3,9 @@ use std::path::Path;
 
 use crate::types::{ShortUrl, ShortUrlName};
 use anyhow::{anyhow, Context};
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
-use super::Repository;
+use super::{Repository, WritableRepository};
 
 #[derive(Debug)]
 pub struct Sqlite3Repo {
@@ -13,7 +13,7 @@ pub struct Sqlite3Repo {
 }
 
 impl Sqlite3Repo {
-    pub const fn new(conn: rusqlite::Connection) -> Self {
+    pub(crate) const fn new(conn: rusqlite::Connection) -> Self {
         Self { conn }
     }
 
@@ -21,13 +21,47 @@ impl Sqlite3Repo {
     ///
     /// Will return `Err` if `path` cannot be converted to a C-compatible
     /// string or if the underlying SQLite open call fails.
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self, anyhow::Error> {
-        let conn = Connection::open(path)?;
+    pub(crate) fn open<P: AsRef<Path>>(
+        path: P,
+        flags: Option<OpenFlags>,
+    ) -> Result<Self, anyhow::Error> {
+        let conn = Connection::open_with_flags(path, flags.unwrap_or_default())?;
         Ok(Self::new(conn))
     }
 }
 
 impl Repository for Sqlite3Repo {
+    fn get_url(&self, id: &ShortUrlName) -> Result<Option<ShortUrl>, anyhow::Error> {
+        let query = "SELECT shortUrl, url FROM urls WHERE shortUrl = ? LIMIT 1";
+        match self
+            .conn
+            .query_row(query, rusqlite::params![id.as_ref()], |row| {
+                Ok((row.get::<_, ShortUrlName>(0)?, row.get::<_, String>(1)?))
+            })
+            .optional()?
+        {
+            Some((name, url)) => {
+                let url = url::Url::parse(&url)
+                    .map_err(anyhow::Error::new)
+                    .and_then(|url| Ok(crate::types::Url::try_from(url)?))
+                    .context(anyhow!("Invalid URL {name}"))?;
+                Ok(Some(ShortUrl::new(name, url)))
+            }
+            None => Ok(None),
+        }
+    }
+
+    fn get_random_quote(&self) -> Result<String, anyhow::Error> {
+        let query = "SELECT quote FROM quotations ORDER BY RANDOM() LIMIT 1";
+        Ok(self
+            .conn
+            .query_row(query, rusqlite::params![], |row| row.get(0))
+            .optional()?
+            .unwrap_or_else(|| "Don't panic\n    -- Douglas Adams".to_string()))
+    }
+}
+
+impl WritableRepository for Sqlite3Repo {
     fn migrate(&mut self) -> Result<(), anyhow::Error> {
         // EXCLUSIVE ensures that it starts with an exclusive write lock. No other
         // readers will be allowed. This generally shouldn't be needed if there is
@@ -51,40 +85,11 @@ impl Repository for Sqlite3Repo {
         Ok(())
     }
 
-    fn get_url(&self, id: &ShortUrlName) -> Result<Option<ShortUrl>, anyhow::Error> {
-        let query = "SELECT shortUrl, url FROM urls WHERE shortUrl = ? LIMIT 1";
-        match self
-            .conn
-            .query_row(query, rusqlite::params![id.as_ref()], |row| {
-                Ok((row.get::<_, ShortUrlName>(0)?, row.get::<_, String>(1)?))
-            })
-            .optional()?
-        {
-            Some((name, url)) => {
-                let url = url::Url::parse(&url)
-                    .map_err(anyhow::Error::new)
-                    .and_then(|url| Ok(crate::types::Url::try_from(url)?))
-                    .context(anyhow!("Invalid URL {name}"))?;
-                Ok(Some(ShortUrl::new(name, url)))
-            }
-            None => Ok(None),
-        }
-    }
-
     fn insert_url(&mut self, short_url: &ShortUrl) -> Result<(), anyhow::Error> {
         let query = "INSERT OR REPLACE INTO urls (shortUrl, url) VALUES (?, ?)";
         self.conn
             .execute(query, rusqlite::params![short_url.name, short_url.url])?;
         Ok(())
-    }
-
-    fn get_random_quote(&self) -> Result<String, anyhow::Error> {
-        let query = "SELECT quote FROM quotations ORDER BY RANDOM() LIMIT 1";
-        Ok(self
-            .conn
-            .query_row(query, rusqlite::params![], |row| row.get(0))
-            .optional()?
-            .unwrap_or_else(|| "Don't panic\n    -- Douglas Adams".to_string()))
     }
 
     fn insert_quotation(&mut self, collection: &str) -> Result<(), anyhow::Error> {
@@ -100,7 +105,10 @@ mod test {
     use rusqlite::Connection;
 
     use super::Sqlite3Repo;
-    use crate::{repository::Repository, types::ShortUrl};
+    use crate::{
+        repository::{Repository, WritableRepository},
+        types::ShortUrl,
+    };
 
     fn repo() -> Sqlite3Repo {
         let mut repo = Sqlite3Repo::new(Connection::open_in_memory().unwrap());
