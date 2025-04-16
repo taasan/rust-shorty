@@ -120,10 +120,11 @@ fn has_username(url: &url::Url) -> bool {
     !url.username().is_empty()
 }
 
-impl TryFrom<url::Url> for Url {
+impl TryFrom<&str> for Url {
     type Error = InvalidUrl;
 
-    fn try_from(url: url::Url) -> Result<Self, Self::Error> {
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        let url = url::Url::parse(s)?;
         if is_http_or_https(&url) && !has_password(&url) && !has_username(&url) {
             Ok(Self(url))
         } else {
@@ -132,20 +133,10 @@ impl TryFrom<url::Url> for Url {
     }
 }
 
-impl TryFrom<&str> for Url {
-    type Error = InvalidUrl;
-
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        url::Url::parse(s)?.try_into()
-    }
-}
-
 impl FromSql for Url {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         let url = value.as_str()?;
-        url::Url::parse(url)
-            .map_err(|_| FromSqlError::InvalidType)
-            .and_then(|url| url.try_into().map_err(|_| FromSqlError::InvalidType))
+        url.try_into().map_err(|_| FromSqlError::InvalidType)
     }
 }
 
@@ -164,13 +155,6 @@ pub struct ShortUrl {
 impl fmt::Display for ShortUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} -> {}", self.name, self.url)
-    }
-}
-
-impl ShortUrl {
-    #[must_use]
-    pub const fn new(name: ShortUrlName, url: Url) -> Self {
-        Self { name, url }
     }
 }
 
@@ -200,40 +184,6 @@ impl From<InvalidShortUrlName> for InvalidShortUrl {
 impl From<InvalidUrl> for InvalidShortUrl {
     fn from(_: InvalidUrl) -> Self {
         Self::InvalidUrl
-    }
-}
-
-impl<N: AsRef<str>, U: AsRef<str>> TryFrom<(N, U)> for ShortUrl {
-    type Error = InvalidShortUrl;
-
-    fn try_from((name, url): (N, U)) -> Result<Self, Self::Error> {
-        Ok(Self::new(
-            ShortUrlName::try_from(name.as_ref())?,
-            Url::try_from(url.as_ref())?,
-        ))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Quotation {
-    source: String,
-    quote: String,
-}
-
-impl Quotation {
-    #[must_use]
-    pub const fn new(source: String, quote: String) -> Self {
-        Self { source, quote }
-    }
-
-    #[must_use]
-    pub const fn source(&self) -> &String {
-        &self.source
-    }
-
-    #[must_use]
-    pub const fn quote(&self) -> &String {
-        &self.quote
     }
 }
 

@@ -41,11 +41,10 @@ impl Repository for Sqlite3Repo {
             .optional()?
         {
             Some((name, url)) => {
-                let url = url::Url::parse(&url)
+                let url = crate::types::Url::try_from(url.as_str())
                     .map_err(anyhow::Error::new)
-                    .and_then(|url| Ok(crate::types::Url::try_from(url)?))
                     .context(anyhow!("Invalid URL {name}"))?;
-                Ok(Some(ShortUrl::new(name, url)))
+                Ok(Some(ShortUrl { name, url }))
             }
             None => Ok(None),
         }
@@ -107,7 +106,7 @@ mod test {
     use super::Sqlite3Repo;
     use crate::{
         repository::{Repository, WritableRepository},
-        types::ShortUrl,
+        types::{ShortUrl, ShortUrlName},
     };
 
     fn repo() -> Sqlite3Repo {
@@ -118,8 +117,11 @@ mod test {
 
     #[test]
     fn test_insert_and_get() {
-        const NAME: &str = "test";
-        let short_url = ShortUrl::try_from((NAME, "https://example.com")).unwrap();
+        let name: ShortUrlName = "test".try_into().unwrap();
+        let short_url = ShortUrl {
+            name: name.clone(),
+            url: "https://example.com".try_into().unwrap(),
+        };
         let mut repo = repo();
 
         // No match returns None
@@ -128,13 +130,16 @@ mod test {
 
         // Fetches newly inserted url
         repo.insert_url(&short_url).unwrap();
-        let result = repo.get_url(&short_url.name).unwrap();
+        let result = repo.get_url(&name).unwrap();
         assert_eq!(result, Some(short_url));
 
         // Udates existing url
-        let short_url = ShortUrl::try_from((NAME, "https://example.com/changed")).unwrap();
+        let short_url = ShortUrl {
+            name: name.clone(),
+            url: "https://example.com/changed".try_into().unwrap(),
+        };
         repo.insert_url(&short_url).unwrap();
-        let result = repo.get_url(&short_url.name).unwrap();
+        let result = repo.get_url(&name).unwrap();
         assert_eq!(result, Some(short_url));
     }
 }
