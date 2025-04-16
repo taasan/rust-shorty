@@ -156,7 +156,10 @@ mod test {
     #[test]
     fn test_short_url_controller() {
         let mut repo = repo(true);
-        let short_url = ShortUrl::try_from(("surl", "https://example.com")).unwrap();
+        let short_url = ShortUrl {
+            name: "surl".try_into().unwrap(),
+            url: "https://example.com".try_into().unwrap(),
+        };
         repo.insert_url(&short_url).unwrap();
         let controller = ShortUrlController::new(repo);
         let params = ShortUrlControllerParams {

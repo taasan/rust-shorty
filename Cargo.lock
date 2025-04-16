@@ -1275,7 +1275,6 @@ dependencies = [
  "hashlink",
  "libsqlite3-sys",
  "smallvec",
- "url",
 ]
 
 [[package]]
