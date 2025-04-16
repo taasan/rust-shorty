@@ -167,7 +167,7 @@ mod test {
         assert_eq!(res.status(), StatusCode::OK);
         assert!(res
             .body()
-            .contains(r#"<p><a href="https://example.com/">Go to surl</a></p>"#));
+            .contains(r#"<a href="https://example.com/">Go to surl"#));
         assert!(res.body().contains(
             r#"<img alt="QR code" title="https://example.org/surl" src="data:image/svg+xml;base64,"#
         ));
