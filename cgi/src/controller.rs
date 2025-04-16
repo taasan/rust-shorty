@@ -106,9 +106,12 @@ pub trait Controller {
 mod test {
     use super::*;
 
-    use shorty::{repository::open_sqlite3_repository_in_memory, types::ShortUrl};
+    use shorty::{
+        repository::{open_sqlite3_repository_in_memory, WritableRepository},
+        types::ShortUrl,
+    };
 
-    fn repo(migrate: bool) -> impl Repository {
+    fn repo(migrate: bool) -> impl WritableRepository {
         let mut repo = open_sqlite3_repository_in_memory().unwrap();
         if migrate {
             repo.migrate().unwrap();
