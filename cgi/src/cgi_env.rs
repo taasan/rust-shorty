@@ -162,19 +162,17 @@ where
     fn http_headers(&self) -> http::HeaderMap<http::HeaderValue> {
         self.env
             .vars()
-            .filter_map(|(k, v)| {
-                if let Ok((k, v)) = k.into_string().and_then(|k| Ok((k, v.into_string()?))) {
-                    let prefix = "HTTP_";
-                    if k.starts_with(prefix) {
-                        let k: String = k.chars().skip(prefix.len()).collect();
-                        let k = k.replace('_', "-");
-                        Some((k.try_into().ok()?, v.try_into().ok()?))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+            .filter_map(|(key, value)| {
+                let key = key.into_string().ok()?;
+                key.strip_prefix("HTTP_").and_then(|key| {
+                    let key = key.replace('_', "-");
+                    let header_name = key.try_into().ok()?;
+                    let value = value
+                        .into_string()
+                        .ok()
+                        .and_then(|value| value.try_into().ok())?;
+                    Some((header_name, value))
+                })
             })
             .collect()
     }
