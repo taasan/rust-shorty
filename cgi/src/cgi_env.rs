@@ -36,10 +36,8 @@ where
     E: Environment,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let vars: BTreeMap<_, _> = self.env.vars().collect();
         let cgi_vars: BTreeMap<_, _> = self.iter().collect();
         f.debug_struct("CgiEnv")
-            .field("os_env", &vars)
             .field("cgi_env", &cgi_vars)
             .finish()
     }
