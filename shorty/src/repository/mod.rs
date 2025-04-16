@@ -53,6 +53,7 @@ pub fn open_writable_sqlite3_repository<P: AsRef<Path>>(
 /// # Errors
 ///
 /// Will return `Err` if the underlying SQLite open call fails.
+#[doc(hidden)]
 pub fn open_sqlite3_repository_in_memory() -> Result<impl WritableRepository, anyhow::Error> {
     Ok(sqlite::Sqlite3Repo::new(
         rusqlite::Connection::open_in_memory()?,
