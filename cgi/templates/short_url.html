@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
-{%- block content -%}
-  <p><a href="{{ short_url.url }}">Go to {{ short_url.name }}</a></p>
-  <div class="qr">
-    <a href="{{ short_url.url }}"><img alt="QR code" title="{{ page_url }}" src="data:image/svg+xml;base64,{{ page_url|qrcode|base64 }}"></a>
+{%- block content %}
+  <div>
+    <a href="{{ short_url.url }}">Go to {{ short_url.name }}
+      <div class="qr"><img alt="QR code" title="{{ page_url }}" src="data:image/svg+xml;base64,{{ page_url|qrcode|base64 }}"></div>
+    </a>
   </div>
 {%- endblock -%}
