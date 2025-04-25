@@ -27,6 +27,7 @@ sentry = { version = "0.37", default-features = false, features = [
   "anyhow",
 ] }
 toml = { version = "0.8" }
+xxhash-rust = "0.8.15"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
