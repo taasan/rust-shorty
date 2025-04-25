@@ -100,12 +100,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.21.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
-
-[[package]]
-name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
@@ -173,7 +167,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "askama",
- "base64 0.22.1",
+ "base64",
  "git-version",
  "headers",
  "html5ever",
@@ -442,10 +436,9 @@ dependencies = [
 [[package]]
 name = "headers"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "322106e6bd0cba2d5ead589ddb8150a13d7c4217cf80d7c4f682ca994ccc6aa9"
+source = "git+https://github.com/hyperium/headers.git?rev=d425d3ca90261683150eda8292c3f14f0d3db3ee#d425d3ca90261683150eda8292c3f14f0d3db3ee"
 dependencies = [
- "base64 0.21.7",
+ "base64",
  "bytes",
  "headers-core",
  "http",
@@ -457,8 +450,7 @@ dependencies = [
 [[package]]
 name = "headers-core"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b4a22553d4242c49fddb9ba998a99962b5cc6f22cb5a3482bec22522403ce4"
+source = "git+https://github.com/hyperium/headers.git?rev=d425d3ca90261683150eda8292c3f14f0d3db3ee#d425d3ca90261683150eda8292c3f14f0d3db3ee"
 dependencies = [
  "http",
 ]
@@ -1212,7 +1204,7 @@ version = "0.12.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d19c46a6fdd48bc4dab94b6103fccc55d34c67cc0ad04653aad4ea2a07cd7bbb"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "bytes",
  "futures-channel",
  "futures-core",
@@ -1935,7 +1927,7 @@ version = "2.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02d1a66277ed75f640d608235660df48c8e3c19f3b4edb6a263315626cc3c01d"
 dependencies = [
- "base64 0.22.1",
+ "base64",
  "log",
  "once_cell",
  "rustls",

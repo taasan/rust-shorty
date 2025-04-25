@@ -1,13 +1,14 @@
 use askama::Template;
 use core::time::Duration;
-use headers::{Expires, HeaderMapExt};
+use headers::{CacheControl, ETag, Expires, HeaderMapExt, LastModified};
 use http::{Response, StatusCode};
 use shorty::{repository::Repository, types::ShortUrlName};
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
     html_response,
     templates::{HttpErrorTemplate, QuotationTemplate, ShortUrlTemplate},
+    VERSION,
 };
 
 pub struct ShortUrlController<T> {
@@ -35,12 +36,26 @@ where
     fn respond(&self, params: Self::Params) -> Self::Result {
         match self.repo.get_url(&params.name) {
             Ok(Some(short_url)) => {
+                let last_modified = short_url.last_modified.0;
+                let etag = format!("\"{VERSION}-{last_modified}\"")
+                    .parse::<ETag>()
+                    .expect("Failed to create ETag");
                 let template = ShortUrlTemplate {
                     page_url: params.page_url,
                     short_url,
                 };
                 let body = template.render()?;
-                let response = html_response(StatusCode::OK, body);
+                let mut response = html_response(StatusCode::OK, body);
+                response.headers_mut().typed_insert(etag);
+                response.headers_mut().typed_insert(LastModified::from(
+                    UNIX_EPOCH + Duration::from_secs(last_modified),
+                ));
+                response.headers_mut().typed_insert(
+                    CacheControl::new()
+                        .with_public()
+                        .with_must_revalidate()
+                        .with_max_age(Duration::from_secs(0)),
+                );
                 Ok(response)
             }
             Ok(None) => ErrorController {}.respond((StatusCode::NOT_FOUND, String::new())),
@@ -106,9 +121,10 @@ pub trait Controller {
 mod test {
     use super::*;
 
+    use headers::Header as _;
     use shorty::{
         repository::{open_sqlite3_repository_in_memory, WritableRepository},
-        types::ShortUrl,
+        types::{ShortUrl, UnixTimestamp},
     };
 
     fn repo(migrate: bool) -> impl WritableRepository {
@@ -159,6 +175,7 @@ mod test {
         let short_url = ShortUrl {
             name: "surl".try_into().unwrap(),
             url: "https://example.com".try_into().unwrap(),
+            last_modified: UnixTimestamp::default(),
         };
         repo.insert_url(&short_url).unwrap();
         let controller = ShortUrlController::new(repo);
@@ -168,6 +185,9 @@ mod test {
         };
         let res = controller.respond(params).unwrap();
         assert_eq!(res.status(), StatusCode::OK);
+        assert!(res.headers().contains_key(headers::ETag::name()));
+        assert!(res.headers().contains_key(headers::CacheControl::name()));
+        assert!(res.headers().contains_key(headers::LastModified::name()));
         assert!(res
             .body()
             .contains(r#"<a href="https://example.com/">Go to surl"#));

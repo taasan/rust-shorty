@@ -1,7 +1,7 @@
 use core::result::Result;
 use std::path::Path;
 
-use crate::types::{ShortUrl, ShortUrlName};
+use crate::types::{ShortUrl, ShortUrlName, UnixTimestamp};
 use anyhow::{anyhow, Context};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
@@ -32,19 +32,27 @@ impl Sqlite3Repo {
 
 impl Repository for Sqlite3Repo {
     fn get_url(&self, id: &ShortUrlName) -> Result<Option<ShortUrl>, anyhow::Error> {
-        let query = "SELECT shortUrl, url FROM urls WHERE shortUrl = ? LIMIT 1";
+        let query = "SELECT shortUrl, url, last_modified FROM urls WHERE shortUrl = ? LIMIT 1";
         match self
             .conn
             .query_row(query, rusqlite::params![id.as_ref()], |row| {
-                Ok((row.get::<_, ShortUrlName>(0)?, row.get::<_, String>(1)?))
+                Ok((
+                    row.get::<_, ShortUrlName>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, UnixTimestamp>(2)?,
+                ))
             })
             .optional()?
         {
-            Some((name, url)) => {
+            Some((name, url, last_modified)) => {
                 let url = crate::types::Url::try_from(url.as_str())
                     .map_err(anyhow::Error::new)
                     .context(anyhow!("Invalid URL {name}"))?;
-                Ok(Some(ShortUrl { name, url }))
+                Ok(Some(ShortUrl {
+                    name,
+                    url,
+                    last_modified,
+                }))
             }
             None => Ok(None),
         }
@@ -66,7 +74,10 @@ impl WritableRepository for Sqlite3Repo {
         // readers will be allowed. This generally shouldn't be needed if there is
         // a file lock, but might be helpful in cases where cargo's `FileLock`
         // failed.
-        let migrations = [include_str!("migrations/sqlite/1.up.sql")];
+        let migrations = [
+            include_str!("migrations/sqlite/1.up.sql"),
+            include_str!("migrations/sqlite/2.up.sql"),
+        ];
         let tx = self
             .conn
             .transaction_with_behavior(TransactionBehavior::Exclusive)?;
@@ -106,7 +117,7 @@ mod test {
     use super::Sqlite3Repo;
     use crate::{
         repository::{Repository, WritableRepository},
-        types::{ShortUrl, ShortUrlName},
+        types::{ShortUrl, ShortUrlName, UnixTimestamp},
     };
 
     fn repo() -> Sqlite3Repo {
@@ -121,6 +132,7 @@ mod test {
         let short_url = ShortUrl {
             name: name.clone(),
             url: "https://example.com".try_into().unwrap(),
+            last_modified: UnixTimestamp::default(),
         };
         let mut repo = repo();
 
@@ -130,16 +142,28 @@ mod test {
 
         // Fetches newly inserted url
         repo.insert_url(&short_url).unwrap();
-        let result = repo.get_url(&name).unwrap();
-        assert_eq!(result, Some(short_url));
+        let inserted_result = repo.get_url(&name).unwrap();
+        assert!(inserted_result.is_some());
+        let inserted_result = inserted_result.unwrap();
+        assert_ne!(inserted_result.last_modified, short_url.last_modified);
+        assert_eq!(inserted_result.name, short_url.name);
+        assert_eq!(inserted_result.url, short_url.url);
+
+        // Sleep to make sure we get a new last_modified
+        std::thread::sleep(core::time::Duration::from_secs(2));
 
         // Udates existing url
         let short_url = ShortUrl {
             name: name.clone(),
             url: "https://example.com/changed".try_into().unwrap(),
+            last_modified: inserted_result.last_modified,
         };
         repo.insert_url(&short_url).unwrap();
         let result = repo.get_url(&name).unwrap();
-        assert_eq!(result, Some(short_url));
+        assert!(result.is_some());
+        let result = result.unwrap();
+        assert!(result.last_modified > short_url.last_modified);
+        assert_eq!(result.name, short_url.name);
+        assert_eq!(result.url, short_url.url);
     }
 }
