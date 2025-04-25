@@ -146,10 +146,30 @@ impl ToSql for Url {
     }
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnixTimestamp(pub u64);
+
+impl FromSql for UnixTimestamp {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let i64_value = value.as_i64_or_null()?.unwrap_or_default();
+        Ok(Self(
+            i64_value
+                .try_into()
+                .map_err(|_| FromSqlError::OutOfRange(i64_value))?,
+        ))
+    }
+}
+
+impl ToSql for UnixTimestamp {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::from(self.0.to_string()))
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShortUrl {
     pub name: ShortUrlName,
     pub url: Url,
+    pub last_modified: UnixTimestamp,
 }
 
 impl fmt::Display for ShortUrl {
