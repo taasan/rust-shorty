@@ -33,11 +33,11 @@ mod filters {
     use ::askama::filters::Safe;
     use fmt::Display;
 
-    pub fn qrcode<T: Display>(s: T) -> askama::Result<String> {
+    pub fn qrcode<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         super::qr_svg(s.to_string()).map_err(|err| ::askama::Error::Custom(Box::new(err)))
     }
 
-    pub fn base64<T: Display>(s: T) -> Result<String, Infallible> {
+    pub fn base64<T: Display>(s: T, _: &dyn askama::Values) -> Result<String, Infallible> {
         use base64::prelude::*;
         Ok(BASE64_STANDARD.encode(s.to_string()))
     }
@@ -55,7 +55,7 @@ mod filters {
     // XML, such as in SVG or MathML markup, a comment cannot contain
     // the character sequence --
     #[allow(clippy::doc_markdown)]
-    pub fn comment<T: Display>(s: T) -> Result<Safe<String>, Infallible> {
+    pub fn comment<T: Display>(s: T, _: &dyn askama::Values) -> Result<Safe<String>, Infallible> {
         Ok(Safe(format!(
             "<!-- {} -->",
             s.to_string().replace("--", "__")

@@ -7,10 +7,10 @@ url = { version = "2.5.4", default-features = false }
 http = { version = "1.2", default-features = false }
 headers = { version = "0.4", default-features = false }
 matchit = { version = "0.8.5", default-features = false }
-rusqlite = { version = "0.34.0", default-features = false, features = [
+rusqlite = { version = "0.35.0", default-features = false, features = [
   "bundled",
 ] }
-askama = { version = "0.13", default-features = true }
+askama = { version = "0.14", default-features = true }
 qrcode = { version = "0.14", default-features = false }
 base64 = { version = "0.22", default-features = true }
 serde = { version = "1.0", default-features = true }
@@ -27,6 +27,7 @@ sentry = { version = "0.37", default-features = false, features = [
   "anyhow",
 ] }
 toml = { version = "0.8" }
+xxhash-rust = "0.8.15"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
