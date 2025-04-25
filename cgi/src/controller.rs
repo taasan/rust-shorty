@@ -1,6 +1,6 @@
 use askama::Template;
 use core::time::Duration;
-use headers::{CacheControl, ETag, Expires, HeaderMapExt, LastModified};
+use headers::{CacheControl, ETag, Expires, Header as _, HeaderMapExt as _, LastModified};
 use http::{Response, StatusCode};
 use shorty::{repository::Repository, types::ShortUrlName};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -50,11 +50,12 @@ where
                 response.headers_mut().typed_insert(LastModified::from(
                     UNIX_EPOCH + Duration::from_secs(last_modified),
                 ));
-                response.headers_mut().typed_insert(
-                    CacheControl::new()
-                        .with_public()
-                        .with_must_revalidate()
-                        .with_max_age(Duration::from_secs(0)),
+                // TODO: headers::CacheControl doesn't support all this yet
+                response.headers_mut().insert(
+                    CacheControl::name(),
+                    "public, s-maxage=300, proxy-revalidate"
+                        .try_into()
+                        .expect("Failed to create CacheControl"),
                 );
                 Ok(response)
             }
@@ -121,7 +122,6 @@ pub trait Controller {
 mod test {
     use super::*;
 
-    use headers::Header as _;
     use shorty::{
         repository::{open_sqlite3_repository_in_memory, WritableRepository},
         types::{ShortUrl, UnixTimestamp},
