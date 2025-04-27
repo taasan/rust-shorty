@@ -177,7 +177,7 @@ mod test {
             url: "https://example.com".try_into().unwrap(),
             last_modified: UnixTimestamp::default(),
         };
-        repo.insert_url(&short_url).unwrap();
+        repo.insert_url(&short_url.name, &short_url.url).unwrap();
         let controller = ShortUrlController::new(repo);
         let params = ShortUrlControllerParams {
             page_url: http::Uri::from_static("https://example.org/surl"),

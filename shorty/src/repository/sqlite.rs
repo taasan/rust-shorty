@@ -66,6 +66,24 @@ impl Repository for Sqlite3Repo {
             .optional()?
             .unwrap_or_else(|| "Don't panic\n    -- Douglas Adams".to_string()))
     }
+
+    fn has_latest_migrations(&self) -> Result<bool, anyhow::Error> {
+        let migrations = migrations();
+        let user_version: usize =
+            self.conn
+                .query_row("SELECT user_version FROM pragma_user_version", [], |row| {
+                    row.get(0)
+                })?;
+        Ok(user_version == migrations.len())
+    }
+}
+
+#[inline]
+const fn migrations() -> [&'static str; 2] {
+    [
+        include_str!("migrations/sqlite/1.up.sql"),
+        include_str!("migrations/sqlite/2.up.sql"),
+    ]
 }
 
 impl WritableRepository for Sqlite3Repo {
@@ -74,10 +92,7 @@ impl WritableRepository for Sqlite3Repo {
         // readers will be allowed. This generally shouldn't be needed if there is
         // a file lock, but might be helpful in cases where cargo's `FileLock`
         // failed.
-        let migrations = [
-            include_str!("migrations/sqlite/1.up.sql"),
-            include_str!("migrations/sqlite/2.up.sql"),
-        ];
+        let migrations = migrations();
         let tx = self
             .conn
             .transaction_with_behavior(TransactionBehavior::Exclusive)?;
@@ -95,10 +110,13 @@ impl WritableRepository for Sqlite3Repo {
         Ok(())
     }
 
-    fn insert_url(&mut self, short_url: &ShortUrl) -> Result<(), anyhow::Error> {
+    fn insert_url(
+        &mut self,
+        name: &ShortUrlName,
+        url: &crate::types::Url,
+    ) -> Result<(), anyhow::Error> {
         let query = "INSERT OR REPLACE INTO urls (shortUrl, url) VALUES (?, ?)";
-        self.conn
-            .execute(query, rusqlite::params![short_url.name, short_url.url])?;
+        self.conn.execute(query, rusqlite::params![name, url])?;
         Ok(())
     }
 
@@ -141,7 +159,7 @@ mod test {
         assert!(result.is_none());
 
         // Fetches newly inserted url
-        repo.insert_url(&short_url).unwrap();
+        repo.insert_url(&short_url.name, &short_url.url).unwrap();
         let inserted_result = repo.get_url(&name).unwrap();
         assert!(inserted_result.is_some());
         let inserted_result = inserted_result.unwrap();
@@ -158,7 +176,7 @@ mod test {
             url: "https://example.com/changed".try_into().unwrap(),
             last_modified: inserted_result.last_modified,
         };
-        repo.insert_url(&short_url).unwrap();
+        repo.insert_url(&short_url.name, &short_url.url).unwrap();
         let result = repo.get_url(&name).unwrap();
         assert!(result.is_some());
         let result = result.unwrap();

@@ -1,0 +1,16 @@
+[package]
+name = "shorty-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+shorty = { path = "../shorty" }
+clap = { workspace = true, features = ["derive", "env"] }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "shorty"      # Dette blir filnavnet på binærfilen
+path = "src/main.rs"
