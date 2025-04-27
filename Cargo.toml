@@ -1,5 +1,5 @@
 [workspace]
-members = ["cgi", "shorty"]
+members = ["cgi", "shorty", "shorty-cli"]
 resolver = "3"
 
 [workspace.dependencies]
@@ -28,11 +28,13 @@ sentry = { version = "0.37", default-features = false, features = [
 ] }
 toml = { version = "0.8" }
 xxhash-rust = "0.8.15"
+clap = { version = "4.5.37" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
 unknown_lints = "forbid"
 elided_lifetimes_in_paths = "forbid"
+unused_imports = "deny"
 
 [workspace.lints.clippy]
 nursery = { level = "warn", priority = -1 }

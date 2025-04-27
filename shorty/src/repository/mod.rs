@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rusqlite::OpenFlags;
 
-use crate::types::{ShortUrl, ShortUrlName};
+use crate::types::{ShortUrl, ShortUrlName, Url};
 
 mod sqlite;
 
@@ -15,6 +15,10 @@ pub trait Repository {
     /// # Errors
     /// May return a `RepositoryError` if database communication fails.
     fn get_random_quote(&self) -> Result<String, anyhow::Error>;
+
+    /// # Errors
+    /// May return a `RepositoryError` if database communication fails.
+    fn has_latest_migrations(&self) -> Result<bool, anyhow::Error>;
 }
 
 pub trait WritableRepository: Repository {
@@ -25,7 +29,7 @@ pub trait WritableRepository: Repository {
 
     /// # Errors
     /// May return a `RepositoryError` if database communication fails.
-    fn insert_url(&mut self, short_url: &ShortUrl) -> Result<(), anyhow::Error>;
+    fn insert_url(&mut self, name: &ShortUrlName, url: &Url) -> Result<(), anyhow::Error>;
 
     /// # Errors
     /// May return a `RepositoryError` if database communication fails.

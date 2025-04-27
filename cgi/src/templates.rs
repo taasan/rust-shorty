@@ -5,6 +5,7 @@ use shorty::types::ShortUrl;
 
 use crate::VERSION;
 
+#[allow(unused_imports)]
 #[derive(Template)]
 #[template(path = "http_error.html")]
 pub struct HttpErrorTemplate {
@@ -12,6 +13,7 @@ pub struct HttpErrorTemplate {
     pub details: String,
 }
 
+#[allow(unused_imports)]
 #[derive(Template)]
 #[template(path = "short_url.html")]
 pub struct ShortUrlTemplate {
@@ -19,6 +21,7 @@ pub struct ShortUrlTemplate {
     pub short_url: ShortUrl,
 }
 
+#[allow(unused_imports)]
 #[derive(Template)]
 #[template(path = "quotation.html")]
 pub struct QuotationTemplate {
