@@ -1,5 +1,5 @@
 [workspace]
-members = ["cgi", "shorty", "shorty-cli"]
+members = ["shorty-cgi", "shorty", "shorty-cli"]
 resolver = "3"
 
 [workspace.dependencies]
