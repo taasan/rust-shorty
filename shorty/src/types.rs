@@ -149,6 +149,12 @@ impl ToSql for Url {
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnixTimestamp(pub u64);
 
+impl core::fmt::Display for UnixTimestamp {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl FromSql for UnixTimestamp {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         let i64_value = value.as_i64_or_null()?.unwrap_or_default();
