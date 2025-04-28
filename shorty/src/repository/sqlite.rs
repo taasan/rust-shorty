@@ -1,8 +1,7 @@
 use core::result::Result;
 use std::path::Path;
 
-use crate::types::{ShortUrl, ShortUrlName, UnixTimestamp};
-use anyhow::{anyhow, Context};
+use crate::types::{ShortUrl, ShortUrlName, UnixTimestamp, Url};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 
 use super::{Repository, WritableRepository};
@@ -33,29 +32,51 @@ impl Sqlite3Repo {
 impl Repository for Sqlite3Repo {
     fn get_url(&self, id: &ShortUrlName) -> Result<Option<ShortUrl>, anyhow::Error> {
         let query = "SELECT shortUrl, url, last_modified FROM urls WHERE shortUrl = ? LIMIT 1";
-        match self
+        Ok(self
             .conn
             .query_row(query, rusqlite::params![id.as_ref()], |row| {
-                Ok((
-                    row.get::<_, ShortUrlName>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, UnixTimestamp>(2)?,
-                ))
+                Ok(ShortUrl {
+                    name: row.get::<_, ShortUrlName>(0)?,
+                    url: row.get::<_, Url>(1)?,
+                    last_modified: row.get::<_, UnixTimestamp>(2)?,
+                })
             })
-            .optional()?
-        {
-            Some((name, url, last_modified)) => {
-                let url = crate::types::Url::try_from(url.as_str())
-                    .map_err(anyhow::Error::new)
-                    .context(anyhow!("Invalid URL {name}"))?;
-                Ok(Some(ShortUrl {
-                    name,
-                    url,
-                    last_modified,
-                }))
-            }
-            None => Ok(None),
+            .optional()?)
+    }
+
+    fn for_each_short_url<F>(&self, callback: F) -> anyhow::Result<()>
+    where
+        F: Fn(ShortUrl) -> anyhow::Result<()>,
+    {
+        let query = "SELECT shorturl, url, last_modified FROM urls";
+        let mut stmt = self.conn.prepare(query)?;
+        let rows = stmt.query_map([], |row| {
+            Ok(ShortUrl {
+                name: row.get::<_, ShortUrlName>(0)?,
+                url: row.get::<_, Url>(1)?,
+                last_modified: row.get::<_, UnixTimestamp>(2)?,
+            })
+        })?;
+        for row in rows {
+            callback(row?)?;
         }
+        Ok(())
+    }
+
+    fn for_each_name<F>(&self, callback: F) -> anyhow::Result<()>
+    where
+        F: Fn(ShortUrlName) -> anyhow::Result<()>,
+    {
+        let query = "SELECT shortUrl FROM urls";
+        let mut stmt = self.conn.prepare(query)?;
+        let rows = stmt.query_map([], |row| {
+            let value: ShortUrlName = row.get(0)?;
+            Ok(value)
+        })?;
+        for row in rows {
+            callback(row?)?;
+        }
+        Ok(())
     }
 
     fn get_random_quote(&self) -> Result<String, anyhow::Error> {

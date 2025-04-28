@@ -13,6 +13,20 @@ pub trait Repository {
     fn get_url(&self, name: &ShortUrlName) -> Result<Option<ShortUrl>, anyhow::Error>;
 
     /// # Errors
+    ///
+    /// May return a `Error` if database communication fail.
+    fn for_each_short_url<F>(&self, callback: F) -> anyhow::Result<()>
+    where
+        F: Fn(ShortUrl) -> anyhow::Result<()>;
+
+    /// # Errors
+    ///
+    /// May return a `Error` if database communication fail.
+    fn for_each_name<F>(&self, callback: F) -> anyhow::Result<()>
+    where
+        F: Fn(ShortUrlName) -> anyhow::Result<()>;
+
+    /// # Errors
     /// May return a `RepositoryError` if database communication fails.
     fn get_random_quote(&self) -> Result<String, anyhow::Error>;
 
