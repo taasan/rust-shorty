@@ -136,7 +136,7 @@ impl WritableRepository for Sqlite3Repo {
         name: &ShortUrlName,
         url: &crate::types::Url,
     ) -> Result<(), anyhow::Error> {
-        let query = "INSERT OR REPLACE INTO urls (shortUrl, url) VALUES (?, ?)";
+        let query = "INSERT INTO urls (shorturl, url) VALUES (?1, ?2) ON CONFLICT(shorturl) DO UPDATE SET url = excluded.url";
         self.conn.execute(query, rusqlite::params![name, url])?;
         Ok(())
     }
