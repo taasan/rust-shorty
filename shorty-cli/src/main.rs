@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use csv::{Terminator, WriterBuilder};
+use git_version::git_version;
 use shorty::{
     repository::{
         Repository, WritableRepository, open_sqlite3_repository, open_writable_sqlite3_repository,
@@ -13,7 +14,7 @@ use shorty::{
 };
 
 #[derive(Debug, Parser)] // requires `derive` feature
-#[command(about = "Shorty", long_about = None)]
+#[command(about = "Shorty", long_about = None, version = git_version!())]
 struct Cli {
     #[command(subcommand)]
     command: Command,

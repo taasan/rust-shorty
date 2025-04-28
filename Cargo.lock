@@ -1805,6 +1805,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "csv",
+ "git-version",
  "shorty",
  "tempfile",
 ]
