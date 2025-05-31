@@ -5,9 +5,9 @@ resolver = "3"
 [workspace.dependencies]
 url = { version = "2.5.4", default-features = false }
 http = { version = "1.2", default-features = false }
-headers = { git = "https://github.com/hyperium/headers.git", rev = "d425d3ca90261683150eda8292c3f14f0d3db3ee", default-features = false }
+headers = { git = "https://github.com/hyperium/headers.git", rev = "12fb1d76d38b47938e2f346a2ea04a25dbff3ee3", default-features = false }
 matchit = { version = "0.8.5", default-features = false }
-rusqlite = { version = "0.35.0", default-features = false, features = [
+rusqlite = { version = "0.36.0", default-features = false, features = [
   "bundled",
 ] }
 askama = { version = "0.14", default-features = true }
@@ -17,7 +17,7 @@ serde = { version = "1.0", default-features = true }
 serde_plain = { version = "1.0", default-features = false }
 anyhow = "1.0"
 git-version = "0.3"
-sentry = { version = "0.37", default-features = false, features = [
+sentry = { version = "0.38", default-features = false, features = [
   "ureq",
   "rustls",
   "backtrace",
@@ -25,6 +25,7 @@ sentry = { version = "0.37", default-features = false, features = [
   "debug-images",
   "panic",
   "anyhow",
+  "release-health",
 ] }
 toml = { version = "0.8" }
 xxhash-rust = "0.8"
