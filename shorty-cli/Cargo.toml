@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 shorty = { path = "../shorty" }
 clap = { workspace = true, features = ["derive", "env"] }
-anyhow = { workspace = true }
 csv = { workspace = true }
 git-version = { workspace = true }
 

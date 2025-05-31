@@ -87,6 +87,14 @@ impl AsRef<str> for ShortUrlName {
     }
 }
 
+impl TryFrom<String> for ShortUrlName {
+    type Error = InvalidShortUrlName;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
+    }
+}
+
 impl FromSql for ShortUrlName {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         Self::try_from(value.as_str()?).map_or_else(|_| Err(FromSqlError::InvalidType), Ok)
@@ -101,6 +109,12 @@ impl ToSql for ShortUrlName {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Url(url::Url);
+
+impl<'a> From<&'a Url> for &'a url::Url {
+    fn from(value: &'a Url) -> Self {
+        &value.0
+    }
+}
 
 impl fmt::Display for Url {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -130,6 +144,14 @@ impl TryFrom<&str> for Url {
         } else {
             Err(InvalidUrl)
         }
+    }
+}
+
+impl TryFrom<String> for Url {
+    type Error = InvalidUrl;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
     }
 }
 

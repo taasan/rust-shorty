@@ -7,7 +7,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 use super::{Repository, WritableRepository};
 
 #[derive(Debug)]
-pub struct Sqlite3Repo {
+pub(crate) struct Sqlite3Repo {
     conn: Connection,
 }
 
@@ -31,7 +31,7 @@ impl Sqlite3Repo {
 
 impl Repository for Sqlite3Repo {
     fn get_url(&self, id: &ShortUrlName) -> Result<Option<ShortUrl>, anyhow::Error> {
-        let query = "SELECT shortUrl, url, last_modified FROM urls WHERE shortUrl = ? LIMIT 1";
+        let query = "SELECT shortUrl, url, last_modified FROM urls WHERE shortUrl = ?";
         Ok(self
             .conn
             .query_row(query, rusqlite::params![id.as_ref()], |row| {
@@ -44,10 +44,10 @@ impl Repository for Sqlite3Repo {
             .optional()?)
     }
 
-    fn for_each_short_url<F>(&self, callback: F) -> anyhow::Result<()>
-    where
-        F: Fn(ShortUrl) -> anyhow::Result<()>,
-    {
+    fn for_each_short_url(
+        &self,
+        callback: &dyn Fn(ShortUrl) -> anyhow::Result<()>,
+    ) -> anyhow::Result<()> {
         let query = "SELECT shorturl, url, last_modified FROM urls";
         let mut stmt = self.conn.prepare(query)?;
         let rows = stmt.query_map([], |row| {
@@ -58,15 +58,16 @@ impl Repository for Sqlite3Repo {
             })
         })?;
         for row in rows {
-            callback(row?)?;
+            let Ok(row) = row else { continue };
+            callback(row)?;
         }
         Ok(())
     }
 
-    fn for_each_name<F>(&self, callback: F) -> anyhow::Result<()>
-    where
-        F: Fn(ShortUrlName) -> anyhow::Result<()>,
-    {
+    fn for_each_name(
+        &self,
+        callback: &dyn Fn(ShortUrlName) -> anyhow::Result<()>,
+    ) -> anyhow::Result<()> {
         let query = "SELECT shortUrl FROM urls";
         let mut stmt = self.conn.prepare(query)?;
         let rows = stmt.query_map([], |row| {
@@ -74,7 +75,8 @@ impl Repository for Sqlite3Repo {
             Ok(value)
         })?;
         for row in rows {
-            callback(row?)?;
+            let Ok(row) = row else { continue };
+            callback(row)?;
         }
         Ok(())
     }
@@ -147,6 +149,32 @@ impl WritableRepository for Sqlite3Repo {
             .execute(query, rusqlite::params!["default", collection])?;
         Ok(())
     }
+}
+
+/// # Errors
+///
+/// Will return `Err` if `path` cannot be converted to a C-compatible
+/// string or if the underlying SQLite open call fails.
+pub fn open_readonly_repository<P: AsRef<Path>>(path: P) -> Result<impl Repository, anyhow::Error> {
+    Sqlite3Repo::open(path, Some(OpenFlags::SQLITE_OPEN_READ_ONLY))
+}
+
+/// # Errors
+///
+/// Will return `Err` if `path` cannot be converted to a C-compatible
+/// string or if the underlying SQLite open call fails.
+pub fn open_writable_repository<P: AsRef<Path>>(
+    path: P,
+) -> Result<impl WritableRepository, anyhow::Error> {
+    Sqlite3Repo::open(path, None)
+}
+
+/// # Errors
+///
+/// Will return `Err` if the underlying SQLite open call fails.
+#[doc(hidden)]
+pub fn open_writable_in_memory_repository() -> Result<impl WritableRepository, anyhow::Error> {
+    Ok(Sqlite3Repo::new(rusqlite::Connection::open_in_memory()?))
 }
 
 #[cfg(test)]

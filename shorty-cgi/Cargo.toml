@@ -14,7 +14,6 @@ qrcode = { workspace = true, features = ["svg"] }
 base64 = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_plain = { workspace = true }
-anyhow = { workspace = true }
 git-version = { workspace = true }
 sentry = { workspace = true, optional = true }
 toml = { workspace = true }
