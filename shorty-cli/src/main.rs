@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use core::cell::RefCell;
+use shorty::anyhow;
 use std::io::Write as _;
 use std::path::PathBuf;
 
@@ -8,7 +9,8 @@ use csv::{Terminator, WriterBuilder};
 use git_version::git_version;
 use shorty::{
     repository::{
-        Repository, WritableRepository, open_sqlite3_repository, open_writable_sqlite3_repository,
+        Repository, WritableRepository,
+        sqlite::{open_readonly_repository, open_writable_repository},
     },
     types::{ShortUrlName, Url},
 };
@@ -62,7 +64,7 @@ impl Command {
     fn execute(self) -> Result<(), anyhow::Error> {
         match self {
             Self::Set { name, url, common } => {
-                let mut repo = open_writable_sqlite3_repository(common.database)?;
+                let mut repo = open_writable_repository(common.database)?;
                 if !repo.has_latest_migrations()? {
                     return Err(anyhow!("migrations needed"));
                 }
@@ -71,7 +73,7 @@ impl Command {
                 Ok(())
             }
             Self::Get { name, common } => {
-                let repo = open_sqlite3_repository(common.database)?;
+                let repo = open_readonly_repository(common.database)?;
                 let out = RefCell::new(std::io::stdout().lock());
                 match repo.get_url(&name)? {
                     Some(url) => {
@@ -82,20 +84,20 @@ impl Command {
                 }
             }
             Self::List { common } => {
-                let repo = open_sqlite3_repository(common.database)?;
+                let repo = open_readonly_repository(common.database)?;
                 let out = RefCell::new(std::io::stdout().lock());
-                repo.for_each_name(|name| Ok(writeln!(*out.borrow_mut(), "{name}")?))?;
+                repo.for_each_name(&|name| Ok(writeln!(*out.borrow_mut(), "{name}")?))?;
                 Ok(())
             }
             Self::Export { common } => {
-                let repo = open_sqlite3_repository(common.database)?;
+                let repo = open_readonly_repository(common.database)?;
                 let wtr = RefCell::new(
                     WriterBuilder::new()
                         .terminator(Terminator::CRLF)
                         .from_writer(std::io::stdout()),
                 );
                 (*wtr.borrow_mut()).write_record(["shorturl", "url", "last_modified"])?;
-                repo.for_each_short_url(|short_url| {
+                repo.for_each_short_url(&|short_url| {
                     (*wtr.borrow_mut()).write_record([
                         &short_url.name.to_string(),
                         &short_url.url.to_string(),
@@ -107,7 +109,7 @@ impl Command {
                 Ok(())
             }
             Self::Migrate { common } => {
-                let mut repo = open_writable_sqlite3_repository(common.database)?;
+                let mut repo = open_writable_repository(common.database)?;
                 repo.migrate()
             }
         }
@@ -125,8 +127,8 @@ mod test {
 
     use shorty::{
         repository::{
-            Repository, WritableRepository, open_sqlite3_repository,
-            open_writable_sqlite3_repository,
+            Repository, WritableRepository,
+            sqlite::{open_readonly_repository, open_writable_repository},
         },
         types::{ShortUrlName, Url},
     };
@@ -189,7 +191,7 @@ mod test {
 
         assert!(db_path.exists());
 
-        let repo = open_sqlite3_repository(&db_path).unwrap();
+        let repo = open_readonly_repository(&db_path).unwrap();
         assert!(repo.has_latest_migrations().unwrap());
     }
 
@@ -201,7 +203,7 @@ mod test {
 
         let name = "aa".try_into().unwrap();
         let url: Url = "https://example.com".try_into().unwrap();
-        let mut repo = open_writable_sqlite3_repository(&db_path).unwrap();
+        let mut repo = open_writable_repository(&db_path).unwrap();
         repo.migrate().unwrap();
         repo.insert_url(&name, &url).unwrap();
 
@@ -222,7 +224,7 @@ mod test {
         let mut cmd = set(&db_path, &name, &url);
         cmd.assert().success();
 
-        let repo = open_sqlite3_repository(&db_path).unwrap();
+        let repo = open_readonly_repository(&db_path).unwrap();
         let short_url = repo.get_url(&name).unwrap();
         assert!(short_url.is_some());
         let short_url = short_url.unwrap();
@@ -238,7 +240,7 @@ mod test {
 
         let name = "aa".try_into().unwrap();
         let url: Url = "https://example.com".try_into().unwrap();
-        let mut repo = open_writable_sqlite3_repository(&db_path).unwrap();
+        let mut repo = open_writable_repository(&db_path).unwrap();
         repo.migrate().unwrap();
         repo.insert_url(&name, &url).unwrap();
 
@@ -254,7 +256,7 @@ mod test {
 
         let name = "aa".try_into().unwrap();
         let url: Url = "https://example.com".try_into().unwrap();
-        let mut repo = open_writable_sqlite3_repository(&db_path).unwrap();
+        let mut repo = open_writable_repository(&db_path).unwrap();
         repo.migrate().unwrap();
         repo.insert_url(&name, &url).unwrap();
         let short_url = repo.get_url(&name).unwrap().unwrap();

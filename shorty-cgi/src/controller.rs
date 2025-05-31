@@ -2,6 +2,7 @@ use askama::Template;
 use core::time::Duration;
 use headers::{CacheControl, ETag, Expires, Header as _, HeaderMapExt as _, LastModified};
 use http::{Response, StatusCode};
+use shorty::anyhow;
 use shorty::{repository::Repository, types::ShortUrlName};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -123,12 +124,12 @@ mod test {
     use super::*;
 
     use shorty::{
-        repository::{open_sqlite3_repository_in_memory, WritableRepository},
+        repository::{sqlite::open_writable_in_memory_repository, WritableRepository},
         types::{ShortUrl, UnixTimestamp},
     };
 
     fn repo(migrate: bool) -> impl WritableRepository {
-        let mut repo = open_sqlite3_repository_in_memory().unwrap();
+        let mut repo = open_writable_in_memory_repository().unwrap();
         if migrate {
             repo.migrate().unwrap();
         }
