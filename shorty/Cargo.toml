@@ -8,6 +8,7 @@ license = "MIT"
 rusqlite = { workspace = true }
 url = { workspace = true }
 anyhow = { workspace = true }
+chrono = { workspace = true, features = ["alloc"] }
 
 [lints]
 workspace = true

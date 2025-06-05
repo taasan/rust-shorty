@@ -5,7 +5,7 @@ resolver = "3"
 [workspace.dependencies]
 url = { version = "2.5.4", default-features = false }
 http = { version = "1.2", default-features = false }
-headers = { git = "https://github.com/hyperium/headers.git", rev = "12fb1d76d38b47938e2f346a2ea04a25dbff3ee3", default-features = false }
+headers = { version = "0.4.1", default-features = false }
 matchit = { version = "0.8.5", default-features = false }
 rusqlite = { version = "0.36.0", default-features = false, features = [
   "bundled",
@@ -33,6 +33,7 @@ clap = { version = "4.5" }
 csv = "1"
 assert_cmd = "2"
 tempfile = "3"
+chrono = { version = "0.4.41", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

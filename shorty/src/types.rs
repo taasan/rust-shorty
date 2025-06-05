@@ -168,8 +168,18 @@ impl ToSql for Url {
     }
 }
 
+/// Only values at or after unix epoch are valid
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnixTimestamp(pub u64);
+
+impl UnixTimestamp {
+    #[must_use]
+    pub fn iso8601(&self) -> Option<String> {
+        let secs: i64 = self.0.try_into().ok()?;
+        chrono::DateTime::from_timestamp(secs, 0)
+            .map(|x| x.to_rfc3339_opts(chrono::SecondsFormat::Secs, true))
+    }
+}
 
 impl core::fmt::Display for UnixTimestamp {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
