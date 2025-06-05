@@ -3,6 +3,7 @@ use core::time::Duration;
 use headers::{CacheControl, ETag, Expires, Header as _, HeaderMapExt as _, LastModified};
 use http::{Response, StatusCode};
 use shorty::anyhow;
+use shorty::types::ShortUrl;
 use shorty::{repository::Repository, types::ShortUrlName};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -27,6 +28,11 @@ pub struct ShortUrlControllerParams {
     pub page_url: http::Uri,
 }
 
+#[inline]
+fn short_url_to_last_modified(short_url: &ShortUrl) -> LastModified {
+    LastModified::from(UNIX_EPOCH + Duration::from_secs(short_url.last_modified.0))
+}
+
 impl<T> Controller for ShortUrlController<T>
 where
     T: Repository,
@@ -37,8 +43,8 @@ where
     fn respond(&self, params: Self::Params) -> Self::Result {
         match self.repo.get_url(&params.name) {
             Ok(Some(short_url)) => {
-                let last_modified = short_url.last_modified.0;
-                let etag = format!("\"{VERSION}-{last_modified}\"")
+                let last_modified = short_url_to_last_modified(&short_url);
+                let etag = format!("\"{VERSION}-{}\"", short_url.last_modified.0)
                     .parse::<ETag>()
                     .expect("Failed to create ETag");
                 let template = ShortUrlTemplate {
@@ -48,9 +54,7 @@ where
                 let body = template.render()?;
                 let mut response = html_response(StatusCode::OK, body);
                 response.headers_mut().typed_insert(etag);
-                response.headers_mut().typed_insert(LastModified::from(
-                    UNIX_EPOCH + Duration::from_secs(last_modified),
-                ));
+                response.headers_mut().typed_insert(last_modified);
                 // TODO: headers::CacheControl doesn't support all this yet
                 response.headers_mut().insert(
                     CacheControl::name(),
@@ -234,5 +238,33 @@ mod test {
 
         assert_eq!(res.status(), StatusCode::IM_A_TEAPOT);
         assert!(res.body().contains("<h2>418 I&#39;m a teapot</h2>"));
+    }
+
+    #[test]
+    fn test_last_modified_0() {
+        let short_url = &ShortUrl {
+            name: ShortUrlName::try_from("ey").unwrap(),
+            url: TryFrom::try_from("https://example.com").unwrap(),
+            last_modified: UnixTimestamp(0),
+        };
+        let header = short_url_to_last_modified(short_url);
+        assert_eq!(
+            format!("{header:?}"),
+            "LastModified(Thu, 01 Jan 1970 00:00:00 GMT)"
+        );
+    }
+
+    #[test]
+    fn test_last_modified_positive() {
+        let short_url = &ShortUrl {
+            name: ShortUrlName::try_from("ey").unwrap(),
+            url: TryFrom::try_from("https://example.com").unwrap(),
+            last_modified: UnixTimestamp(1_000_000_000),
+        };
+        let header = short_url_to_last_modified(short_url);
+        assert_eq!(
+            format!("{header:?}"),
+            "LastModified(Sun, 09 Sep 2001 01:46:40 GMT)"
+        );
     }
 }
