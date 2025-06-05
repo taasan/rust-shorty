@@ -101,7 +101,9 @@ impl Command {
                     (*wtr.borrow_mut()).write_record([
                         &short_url.name.to_string(),
                         &short_url.url.to_string(),
-                        &short_url.last_modified.to_string(),
+                        &short_url
+                            .last_modified
+                            .map_or(String::new(), |x| x.to_string()),
                     ])?;
                     (*wtr.borrow_mut()).flush()?;
                     Ok(())
@@ -264,7 +266,11 @@ mod test {
         let mut cmd = export(&db_path);
         let expected = format!(
             "shorturl,url,last_modified\r\n{},{},{}\r\n",
-            short_url.name, short_url.url, short_url.last_modified
+            short_url.name,
+            short_url.url,
+            short_url
+                .last_modified
+                .map_or(String::new(), |x| x.to_string())
         );
         cmd.assert().success().stdout(expected);
     }

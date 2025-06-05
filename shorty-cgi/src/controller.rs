@@ -3,7 +3,7 @@ use core::time::Duration;
 use headers::{CacheControl, ETag, Expires, Header as _, HeaderMapExt as _, LastModified};
 use http::{Response, StatusCode};
 use shorty::anyhow;
-use shorty::types::ShortUrl;
+use shorty::types::{ShortUrl, UnixTimestamp};
 use shorty::{repository::Repository, types::ShortUrlName};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -29,8 +29,12 @@ pub struct ShortUrlControllerParams {
 }
 
 #[inline]
-fn short_url_to_last_modified(short_url: &ShortUrl) -> LastModified {
-    LastModified::from(UNIX_EPOCH + Duration::from_secs(short_url.last_modified.0))
+fn short_url_to_last_modified(short_url: &ShortUrl) -> (LastModified, UnixTimestamp) {
+    let last_modifed = short_url.last_modified.unwrap_or_default();
+    (
+        LastModified::from(UNIX_EPOCH + Duration::from_secs(last_modifed.0)),
+        last_modifed,
+    )
 }
 
 impl<T> Controller for ShortUrlController<T>
@@ -43,8 +47,8 @@ where
     fn respond(&self, params: Self::Params) -> Self::Result {
         match self.repo.get_url(&params.name) {
             Ok(Some(short_url)) => {
-                let last_modified = short_url_to_last_modified(&short_url);
-                let etag = format!("\"{VERSION}-{}\"", short_url.last_modified.0)
+                let (last_modified, last_modified_tstamp) = short_url_to_last_modified(&short_url);
+                let etag = format!("\"{VERSION}-{}\"", last_modified_tstamp.0)
                     .parse::<ETag>()
                     .expect("Failed to create ETag");
                 let template = ShortUrlTemplate {
@@ -180,7 +184,7 @@ mod test {
         let short_url = ShortUrl {
             name: "surl".try_into().unwrap(),
             url: "https://example.com".try_into().unwrap(),
-            last_modified: UnixTimestamp::default(),
+            last_modified: None,
         };
         repo.insert_url(&short_url.name, &short_url.url).unwrap();
         let controller = ShortUrlController::new(repo);
@@ -245,9 +249,10 @@ mod test {
         let short_url = &ShortUrl {
             name: ShortUrlName::try_from("ey").unwrap(),
             url: TryFrom::try_from("https://example.com").unwrap(),
-            last_modified: UnixTimestamp(0),
+            last_modified: Some(UnixTimestamp(0)),
         };
-        let header = short_url_to_last_modified(short_url);
+        let (header, last_modified) = short_url_to_last_modified(short_url);
+        assert_eq!(Some(last_modified), short_url.last_modified);
         assert_eq!(
             format!("{header:?}"),
             "LastModified(Thu, 01 Jan 1970 00:00:00 GMT)"
@@ -259,9 +264,10 @@ mod test {
         let short_url = &ShortUrl {
             name: ShortUrlName::try_from("ey").unwrap(),
             url: TryFrom::try_from("https://example.com").unwrap(),
-            last_modified: UnixTimestamp(1_000_000_000),
+            last_modified: Some(UnixTimestamp(1_000_000_000)),
         };
-        let header = short_url_to_last_modified(short_url);
+        let (header, last_modified) = short_url_to_last_modified(short_url);
+        assert_eq!(Some(last_modified), short_url.last_modified);
         assert_eq!(
             format!("{header:?}"),
             "LastModified(Sun, 09 Sep 2001 01:46:40 GMT)"

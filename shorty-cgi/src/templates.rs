@@ -82,8 +82,6 @@ where
 
 #[cfg(test)]
 mod test {
-    use shorty::types::UnixTimestamp;
-
     use super::*;
 
     #[test]
@@ -104,7 +102,7 @@ mod test {
             short_url: ShortUrl {
                 name: "abc".try_into().unwrap(),
                 url: "https://example.com#ch-1".try_into().unwrap(),
-                last_modified: UnixTimestamp::default(),
+                last_modified: None,
             },
         };
         let output = template.render().unwrap();
