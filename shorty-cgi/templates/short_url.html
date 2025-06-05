@@ -6,9 +6,11 @@
       <div class="qr"><img alt="QR code" title="{{ page_url }}" src="data:image/svg+xml;base64,{{ page_url|qrcode|base64 }}"></div>
     </a>
   </div>
-  {%- if let Some(last_modified) = short_url.last_modified.iso8601() %}
+  {%- if let Some(last_modified) = short_url.last_modified %}
+  {%- if let Some(last_modified) = last_modified.iso8601() %}
   <div>
     <p>Last modified: <time datetime="{{ last_modified }}">{{ last_modified }}</time></p>
   </div>
+  {%endif -%}
   {%endif -%}
 {%- endblock -%}

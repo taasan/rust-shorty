@@ -38,7 +38,7 @@ impl Repository for Sqlite3Repo {
                 Ok(ShortUrl {
                     name: row.get::<_, ShortUrlName>(0)?,
                     url: row.get::<_, Url>(1)?,
-                    last_modified: row.get::<_, UnixTimestamp>(2)?,
+                    last_modified: row.get::<_, Option<UnixTimestamp>>(2)?,
                 })
             })
             .optional()?)
@@ -54,7 +54,7 @@ impl Repository for Sqlite3Repo {
             Ok(ShortUrl {
                 name: row.get::<_, ShortUrlName>(0)?,
                 url: row.get::<_, Url>(1)?,
-                last_modified: row.get::<_, UnixTimestamp>(2)?,
+                last_modified: row.get::<_, Option<UnixTimestamp>>(2)?,
             })
         })?;
         for row in rows {
@@ -184,7 +184,7 @@ mod test {
     use super::Sqlite3Repo;
     use crate::{
         repository::{Repository, WritableRepository},
-        types::{ShortUrl, ShortUrlName, UnixTimestamp},
+        types::{ShortUrl, ShortUrlName},
     };
 
     fn repo() -> Sqlite3Repo {
@@ -199,7 +199,7 @@ mod test {
         let short_url = ShortUrl {
             name: name.clone(),
             url: "https://example.com".try_into().unwrap(),
-            last_modified: UnixTimestamp::default(),
+            last_modified: None,
         };
         let mut repo = repo();
 
