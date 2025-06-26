@@ -24,7 +24,7 @@ default = ["sentry"]
 sentry = ["dep:sentry"]
 
 [dev-dependencies]
-html5ever = "0.31"
+html5ever = "0.33"
 
 [lints]
 workspace = true
