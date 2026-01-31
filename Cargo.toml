@@ -34,6 +34,8 @@ csv = "1"
 assert_cmd = "2"
 tempfile = "3"
 chrono = { version = "0.4.41", default-features = false }
+html5ever = "0.38"
+predicates = "3"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

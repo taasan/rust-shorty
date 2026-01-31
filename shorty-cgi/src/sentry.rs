@@ -1,7 +1,7 @@
 use crate::cgi_env::{CgiEnv, Environment};
 use sentry::{Breadcrumb, Level};
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct SentryConfig {
     #[serde(default)]
     pub enabled: bool,
