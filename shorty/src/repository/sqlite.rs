@@ -92,12 +92,12 @@ impl Repository for Sqlite3Repo {
 
     fn has_latest_migrations(&self) -> Result<bool, anyhow::Error> {
         let migrations = migrations();
-        let user_version: usize =
+        let user_version: u32 =
             self.conn
                 .query_row("SELECT user_version FROM pragma_user_version", [], |row| {
                     row.get(0)
                 })?;
-        Ok(user_version == migrations.len())
+        Ok(user_version as usize == migrations.len())
     }
 }
 
@@ -119,15 +119,15 @@ impl WritableRepository for Sqlite3Repo {
         let tx = self
             .conn
             .transaction_with_behavior(TransactionBehavior::Exclusive)?;
-        let user_version =
+        let user_version: u32 =
             tx.query_row("SELECT user_version FROM pragma_user_version", [], |row| {
                 row.get(0)
             })?;
-        if user_version < migrations.len() {
-            for migration in &migrations[user_version..] {
+        if (user_version as usize) < migrations.len() {
+            for migration in &migrations[(user_version as usize)..] {
                 tx.execute_batch(migration)?;
             }
-            tx.pragma_update(None, "user_version", migrations.len())?;
+            tx.pragma_update(None, "user_version", u32::try_from(migrations.len())?)?;
         }
         tx.commit()?;
         Ok(())
