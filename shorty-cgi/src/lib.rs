@@ -1,8 +1,11 @@
 use headers::{ContentType, Header as _, HeaderMapExt};
 use http::StatusCode;
-use std::time::SystemTime;
+use std::{path::PathBuf, time::SystemTime};
 
 use git_version::git_version;
+
+#[cfg(feature = "sentry")]
+use crate::sentry::SentryConfig;
 
 #[cfg(test)]
 #[macro_use]
@@ -15,6 +18,14 @@ pub mod sentry;
 mod templates;
 
 pub const VERSION: &str = git_version!(prefix = "", cargo_prefix = "cargo:", fallback = "unknown");
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct Config {
+    /// If relative, it will be resolved relative to the config file.
+    pub database_file: PathBuf,
+    #[cfg(feature = "sentry")]
+    pub sentry: Option<SentryConfig>,
+}
 
 #[inline]
 fn serialize_headers(

@@ -24,7 +24,10 @@ default = ["sentry"]
 sentry = ["dep:sentry"]
 
 [dev-dependencies]
-html5ever = "0.38"
+html5ever = { workspace = true }
+assert_cmd = { workspace = true }
+tempfile = { workspace = true }
+predicates = { workspace = true }
 
 [lints]
 workspace = true

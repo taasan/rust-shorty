@@ -3,8 +3,9 @@ use cgi::cgi_env::{CgiEnv, Environment, MetaVariableKind, OsEnvironment, PathInf
 use cgi::controller::{
     Controller, ErrorController, QuotationController, ShortUrlController, ShortUrlControllerParams,
 };
-#[cfg(feature = "sentry")]
+#[cfg(all(feature = "sentry", not(test)))]
 use cgi::sentry::SentryConfig;
+use cgi::Config;
 use cgi::{serialize_response, text_response};
 use core::fmt;
 use core::str::FromStr;
@@ -17,7 +18,7 @@ use shorty::repository::{
 };
 use shorty::types::ShortUrlName;
 use std::sync::Once;
-use std::{env, fs, path::Path, path::PathBuf};
+use std::{env, fs, path::Path};
 
 const SHORT_URL_PARAM: &str = "short_url";
 
@@ -42,7 +43,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 
     let cgi_env = &CgiEnv::new(OsEnvironment);
     if cgi_env.is_cgi() {
-        #[cfg(feature = "sentry")]
+        #[cfg(all(feature = "sentry", not(test)))]
         let _guard = match &config.sentry {
             Some(SentryConfig {
                 enabled: true,
@@ -66,14 +67,6 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
         return Err("Unknown command".into());
     }
     Ok(())
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct Config {
-    /// If relative, it will be resolved relative to the config file.
-    pub database_file: PathBuf,
-    #[cfg(feature = "sentry")]
-    pub sentry: Option<SentryConfig>,
 }
 
 fn read_config<P: AsRef<Path>>(path: P) -> Result<Config, anyhow::Error> {
