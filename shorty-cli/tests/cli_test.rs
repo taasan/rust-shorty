@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[serial_test::serial]
 mod test {
     use std::path::PathBuf;
 

@@ -12,6 +12,7 @@ git-version = { workspace = true }
 [dev-dependencies]
 assert_cmd = { workspace = true }
 tempfile = { workspace = true }
+serial_test = { workspace = true }
 
 [lints]
 workspace = true
