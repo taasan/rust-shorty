@@ -28,6 +28,7 @@ html5ever = { workspace = true }
 assert_cmd = { workspace = true }
 tempfile = { workspace = true }
 predicates = { workspace = true }
+serial_test = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,4 +1,6 @@
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[serial_test::serial]
 mod test {
     use std::{
         fs::File,
@@ -18,13 +20,8 @@ mod test {
 
     fn base_command(db_path: &Path) -> assert_cmd::Command {
         let temp_dir = db_path.parent().unwrap();
-        let original_cgi = PathBuf::from(cargo_bin_cmd!("cgi").get_program());
-        let unique_cgi = temp_dir.join("cgi_bin_copy");
+        let cgi_path = PathBuf::from(cargo_bin_cmd!("cgi").get_program());
 
-        // Kopier binærfilen til en unik plass for denne testen
-        std::fs::copy(original_cgi, &unique_cgi).unwrap();
-
-        // Bruk den unike kopien i shebang
         let script_path = temp_dir.join("shorty.cgi");
         let config = Config {
             database_file: db_path.to_path_buf(),
@@ -38,7 +35,7 @@ mod test {
 
  {toml_string}
  ",
-            unique_cgi.display()
+            cgi_path.display()
         );
         let mut file = File::create(&script_path).unwrap();
         file.write_all(script.as_bytes()).unwrap();
