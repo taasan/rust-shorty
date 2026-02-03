@@ -20,9 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build
-      - run: cargo test
-      - run: cargo build --no-default-features
-      - run: cargo test --no-default-features
-      - run: cargo clippy
       - run: cargo fmt --check
+      - run: cargo clippy --all-targets --no-default-features -- -D warnings
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo test --workspace --no-default-features
+      - run: cargo test --workspace --all-features
