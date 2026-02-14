@@ -27,7 +27,7 @@ sentry = { version = "0.46", default-features = false, features = [
   "anyhow",
   "release-health",
 ] }
-toml = { version = "0.9" }
+toml = { version = "1.0" }
 xxhash-rust = "0.8"
 clap = { version = "4.5" }
 csv = "1"
