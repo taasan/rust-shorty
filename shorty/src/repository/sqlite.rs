@@ -119,12 +119,12 @@ impl WritableRepository for Sqlite3Repo {
         let tx = self
             .conn
             .transaction_with_behavior(TransactionBehavior::Exclusive)?;
-        let user_version: u32 =
+        let user_version: usize =
             tx.query_row("SELECT user_version FROM pragma_user_version", [], |row| {
                 row.get(0)
             })?;
-        if (user_version as usize) < migrations.len() {
-            for migration in &migrations[(user_version as usize)..] {
+        if user_version < migrations.len() {
+            for migration in &migrations[user_version..] {
                 tx.execute_batch(migration)?;
             }
             tx.pragma_update(None, "user_version", u32::try_from(migrations.len())?)?;
