@@ -1,0 +1,105 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-shebang-scripts-are-executable
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: forbid-submodules
+
+  - repo: local
+    hooks:
+      # - id: cargo-fmt
+      #   name: cargo fmt
+      #   entry: cargo fmt --check
+      #   language: system
+      #   types: [rust]
+      #   pass_filenames: false
+      #
+      # - id: cargo-clippy-default
+      #   name: cargo clippy (default)
+      #   entry: cargo clippy --all-targets
+      #   language: system
+      #   types: [rust]
+      #   pass_filenames: false
+      #
+      # - id: cargo-clippy-no-default
+      #   name: cargo clippy (no-default-features)
+      #   entry: cargo clippy --all-targets --no-default-features
+      #   language: system
+      #   types: [rust]
+      #   pass_filenames: false
+      #
+      # - id: cargo-clippy-all-features
+      #   name: cargo clippy (all-features)
+      #   entry: cargo clippy --all-targets --all-features
+      #   language: system
+      #   types: [rust]
+      #   pass_filenames: false
+      #
+      # - id: cargo-test-default
+      #   name: cargo test (default)
+      #   entry: cargo test
+      #   language: system
+      #   types: [rust]
+      #   pass_filenames: false
+      #
+      # - id: cargo-test-no-default
+      #   name: cargo test (no-default-features)
+      #   entry: cargo test --no-default-features
+      #   language: system
+      #   types: [rust]
+      #   pass_filenames: false
+      #
+      # - id: cargo-test-all-features
+      #   name: cargo test (all-features)
+      #   entry: cargo test --all-features
+      #   language: system
+      #   types: [rust]
+      #   pass_filenames: false
+
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all
+        language: system
+        pass_filenames: false
+        types: [rust]
+
+      # Default features
+      - id: cargo-check-default
+        name: cargo check & clippy (default)
+        entry: bash -c 'cargo clippy --all-targets && cargo check --all-targets && cargo test'
+        language: system
+        pass_filenames: false
+        types: [rust]
+
+      # No default features
+      - id: cargo-check-no-default
+        name: cargo check & clippy (no-default-features)
+        entry: bash -c 'cargo clippy --all-targets --no-default-features && cargo check --all-targets --no-default-features && cargo test --no-default-features'
+        language: system
+        pass_filenames: false
+        types: [rust]
+
+      # All features
+      - id: cargo-check-all-features
+        name: cargo check & clippy (all-features)
+        entry: bash -c 'cargo clippy --all-targets --all-features && cargo check --all-targets --all-features && cargo test --all-features'
+        language: system
+        pass_filenames: false
+        types: [rust]
+
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: script-must-not-have-extension
+      - id: shellcheck
+      - id: shfmt
+        args:
+          - --indent 4

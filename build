@@ -3,8 +3,8 @@ set -euo pipefail
 
 TARGET=x86_64-unknown-linux-musl
 
-binaries=$(cargo build --release --target "$TARGET" --message-format=json \
-| jq -r '
+binaries=$(cargo build --release --target "$TARGET" --message-format=json |
+    jq -r '
     select(.reason=="compiler-artifact")
     | select(.target.kind | index("bin"))
     | select(.target.kind | index("test") | not)
