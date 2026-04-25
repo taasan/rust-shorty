@@ -30,7 +30,7 @@ sentry = { version = "0.47", default-features = false, features = [
 ] }
 toml = { version = "1.0" }
 xxhash-rust = "0.8"
-clap = { version = "4.5" }
+clap = { version = "4.6" }
 csv = "1"
 assert_cmd = "2"
 tempfile = "3"
