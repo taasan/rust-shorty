@@ -98,7 +98,7 @@ where
         let quote = self.repo.get_random_quote()?;
         let template = QuotationTemplate { quote };
         let body = template.render()?;
-        let time = SystemTime::now() + Duration::from_secs(60 * 60 * 24);
+        let time = SystemTime::now() + Duration::from_hours(24);
 
         let mut response = html_response(StatusCode::OK, body);
         response.headers_mut().typed_insert(Expires::from(time));
