@@ -230,7 +230,7 @@ fn handle<T: fmt::Debug + Environment>(
         }) => {
             use headers::{CacheControl, HeaderMapExt as _};
             let mut response =
-                text_response(StatusCode::OK, format!("{cgi_env:#?}\n\n{request:#?}\n",));
+                text_response(StatusCode::OK, format!("{cgi_env:#?}\n\n{request:#?}\n"));
             response
                 .headers_mut()
                 .typed_insert(CacheControl::new().with_no_store());

@@ -76,7 +76,7 @@ where
         let etag = create_etag(response.body().as_ref());
         response.headers_mut().typed_insert(etag);
     }
-    write!(out, "Status: {}\r\n", response.status(),)?;
+    write!(out, "Status: {}\r\n", response.status())?;
     response
         .headers_mut()
         .typed_insert(headers::Date::from(SystemTime::now()));
