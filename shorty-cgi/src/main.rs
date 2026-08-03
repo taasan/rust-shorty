@@ -51,12 +51,10 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
                 debug,
             }) => Some(sentry::init((
                 dsn,
-                sentry::ClientOptions {
-                    release: Some(cgi::VERSION.into()),
-                    session_mode: sentry::SessionMode::Request,
-                    debug: *debug,
-                    ..Default::default()
-                },
+                sentry::ClientOptions::new()
+                    .release(std::borrow::Cow::Borrowed(cgi::VERSION))
+                    .session_mode(sentry::SessionMode::Request)
+                    .debug(*debug),
             ))),
             _ => None,
         };
