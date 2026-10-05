@@ -58,7 +58,7 @@ option_if_let_else = "deny"
 use_self = "deny"
 redundant_clone = "deny"
 unwrap_used = "deny"
-disallowed-methods = "deny"
+disallowed_methods = "deny"
 
 [profile.release]
 strip = true
